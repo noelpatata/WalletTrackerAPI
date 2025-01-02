@@ -1,5 +1,5 @@
 from dataBase.db import db
-from baseClass import BaseClass
+from model.BaseClass import BaseClass
 
 class Expense(db.Model, BaseClass):
     __tablename__ = 'Expense'
@@ -12,11 +12,3 @@ class Expense(db.Model, BaseClass):
     @classmethod
     def getByCategory(cls, catid):
         return cls.query.filter(cls.category == catid).all()
-    
-    def to_dict(self):
-        return {
-            'id': self._id,
-            'price': self.price,
-            'expenseDate': self.expenseDate.isoformat(),  # Convert Date to ISO format string
-            'category': self.category,
-        }

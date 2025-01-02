@@ -1,4 +1,4 @@
-from expenses import expenses_bp
+from model.ExpenseModel import expenses_bp
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from dataBase.db import db

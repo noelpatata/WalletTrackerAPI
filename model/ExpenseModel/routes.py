@@ -1,23 +1,14 @@
 import json
 from flask import jsonify, request
 from . import expenses_bp
-from expenses.Expense import Expense
-
-# Simulación de base de datos en memoria
-#expenses = [
-  #  {'id': 1, 'price': 2.5, 'expenseDate': "2024-02-28", 'category': 1},
-   # {'id': 2, 'price': 3.2, 'expenseDate': "2024-02-29", 'category': 1},
-    #{'id': 3, 'price': 4.1, 'expenseDate': "2024-01-01", 'category': 2}
-#]
-
-nextexpensesId = 4
+from .Expense import Expense
 
 
 # Endpoints
 @expenses_bp.route('/expenses', methods=['GET'])
 def get_expenses():
     expenses = Expense.get_all()
-    expenses_json = [expense.to_dict() for expense in expenses]  # Assuming a `to_dict` method
+    expenses_json = [expense.serialize() for expense in expenses]  # Assuming a `to_dict` method
     return jsonify(expenses_json)
 
 
