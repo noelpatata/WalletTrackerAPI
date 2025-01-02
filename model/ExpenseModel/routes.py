@@ -1,11 +1,10 @@
-import json
 from flask import jsonify, request
 from . import expenses_bp
 from .Expense import Expense
 
 
 # Endpoints
-@expenses_bp.route('/expenses', methods=['GET'])
+@expenses_bp.route('/', methods=['GET'])
 def get_expenses():
     expenses = Expense.get_all()
     expenses_json = [expense.serialize() for expense in expenses]  # Assuming a `to_dict` method

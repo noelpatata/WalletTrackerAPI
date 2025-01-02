@@ -1,6 +1,6 @@
-from sqlalchemy import Date
-from flask_sqlalchemy import SQLAlchemy
+from datetime import date
 from dataBase import db
+import sys
 
 
 
@@ -18,8 +18,10 @@ class BaseClass:
         """Dynamically serialize the object's attributes."""
         result = {}
         for column in self.__table__.columns:
+            
             value = getattr(self, column.name)
-            if isinstance(value, Date):  # Handle Date fields
+            print(type(value).__name__, file=sys.stderr)
+            if isinstance(value, date):  # Handle Date fields
                 value = value.isoformat()
             result[column.name] = value
         return result
