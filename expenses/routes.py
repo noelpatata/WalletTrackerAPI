@@ -1,13 +1,14 @@
+import json
 from flask import jsonify, request
 from . import expenses_bp
-from . import expenseDAO
+from expenses.Expense import Expense
 
 # Simulación de base de datos en memoria
-expenses = [
-    {'id': 1, 'price': 2.5, 'expenseDate': "2024-02-28", 'category': 1},
-    {'id': 2, 'price': 3.2, 'expenseDate': "2024-02-29", 'category': 1},
-    {'id': 3, 'price': 4.1, 'expenseDate': "2024-01-01", 'category': 2}
-]
+#expenses = [
+  #  {'id': 1, 'price': 2.5, 'expenseDate': "2024-02-28", 'category': 1},
+   # {'id': 2, 'price': 3.2, 'expenseDate': "2024-02-29", 'category': 1},
+    #{'id': 3, 'price': 4.1, 'expenseDate': "2024-01-01", 'category': 2}
+#]
 
 nextexpensesId = 4
 
@@ -15,7 +16,9 @@ nextexpensesId = 4
 # Endpoints
 @expenses_bp.route('/expenses', methods=['GET'])
 def get_expenses():
-    return jsonify(expenseDAO.getAll())
+    expenses = Expense.get_all()
+    expenses_json = [expense.to_dict() for expense in expenses]  # Assuming a `to_dict` method
+    return jsonify(expenses_json)
 
 
 @expenses_bp.route('/expenses/<int:id>', methods=['GET'])
