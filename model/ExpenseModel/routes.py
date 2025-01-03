@@ -1,17 +1,19 @@
 from flask import jsonify, request
-from . import expenses_bp
+from . import expense_bp
 from .Expense import Expense
+from ..Authentication.routes import token_required
 
 
 # Endpoints
-@expenses_bp.route('/', methods=['GET'])
+@expense_bp.route('/', methods=['GET'])
+@token_required
 def get_expenses():
     expenses = Expense.get_all()
     expenses_json = [expense.serialize() for expense in expenses]  # Assuming a `to_dict` method
     return jsonify(expenses_json)
 
 
-@expenses_bp.route('/expenses/<int:id>', methods=['GET'])
+@expense_bp.route('/expenses/<int:id>', methods=['GET'])
 def get_expenses_by_id(id: int):
     expense = next((e for e in expenses if e['id'] == id), None)
     if expense is None:
@@ -19,7 +21,7 @@ def get_expenses_by_id(id: int):
     return jsonify(expense)
 
 
-@expenses_bp.route('/expenses', methods=['POST'])
+@expense_bp.route('/expenses', methods=['POST'])
 def create_expenses():
     global nextexpensesId
     new_expense = request.get_json()
@@ -33,7 +35,7 @@ def create_expenses():
     return '', 201, {'location': f'/expenses/{new_expense["id"]}'}
 
 
-@expenses_bp.route('/expenses/<int:id>', methods=['PUT'])
+@expense_bp.route('/expenses/<int:id>', methods=['PUT'])
 def update_expenses(id: int):
     expense = next((e for e in expenses if e['id'] == id), None)
     if expense is None:
@@ -47,7 +49,7 @@ def update_expenses(id: int):
     return jsonify(expense)
 
 
-@expenses_bp.route('/expenses/<int:id>', methods=['DELETE'])
+@expense_bp.route('/expenses/<int:id>', methods=['DELETE'])
 def delete_expenses(id: int):
     global expenses
     expense = next((e for e in expenses if e['id'] == id), None)
