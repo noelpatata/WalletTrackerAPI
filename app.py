@@ -8,8 +8,9 @@ app = Flask(__name__)
 
 app.config['secret_key'] = Strings.secretKey
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:?!tr3n3s!?@localhost/WalletTracker'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://root:{Strings.mysqlPassword}@localhost/WalletTracker'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['debug']=True
 
 
 db.init_app(app)

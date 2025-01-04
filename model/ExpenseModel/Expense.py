@@ -8,7 +8,8 @@ class Expense(db.Model, BaseClass):
     price = db.Column(db.Float, nullable=False)
     expenseDate = db.Column(db.Date, nullable=False)
     category = db.Column(db.Integer, db.ForeignKey('ExpenseCategory._id'), nullable=False)
+    user = db.Column(db.Integer, db.ForeignKey('User.id'), nullable=False)
     
     @classmethod
-    def getByCategory(cls, catid):
-        return cls.query.filter(cls.category == catid).all()
+    def getByUser(cls, userId):
+        return cls.query.filter(cls.user == userId).all()

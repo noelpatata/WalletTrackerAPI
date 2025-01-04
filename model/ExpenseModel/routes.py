@@ -5,10 +5,10 @@ from ..Authentication.routes import token_required
 
 
 # Endpoints
-@expense_bp.route('/', methods=['GET'])
+@expense_bp.route('/<int:userId>', methods=['GET'])
 @token_required
-def get_expenses():
-    expenses = Expense.get_all()
+def get_by_user(userId: int):
+    expenses = Expense.getByUser(userId)
     expenses_json = [expense.serialize() for expense in expenses]  # Assuming a `to_dict` method
     return jsonify(expenses_json)
 
