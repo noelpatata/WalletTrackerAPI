@@ -3,7 +3,6 @@ import datetime
 from flask import request, jsonify, make_response, current_app, redirect, url_for
 import jwt
 from . import auth_bp
-import jwt
 from .User import User
 
 def token_required(f):
