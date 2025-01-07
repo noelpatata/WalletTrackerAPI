@@ -1,3 +1,5 @@
+from __future__ import print_function # In python 2.7
+import sys
 
 import datetime
 from flask import request, jsonify, make_response, current_app, redirect, url_for
@@ -7,7 +9,16 @@ from .User import User
 
 def token_required(f):
     def decorated(*args, **kwargs):
-        token = request.args.get('token')
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            return jsonify({'error': 'Authorization header is missing'}), 403
+
+        if not auth_header.startswith("Bearer "):
+            return jsonify({'error': 'Invalid Authorization header format. Use Bearer <token>'}), 403
+
+        # Extract the token
+        token = auth_header.split(" ")[1]
+        
         if not token:
             return jsonify({'error': 'token is missing'}), 403
         try:
@@ -31,9 +42,8 @@ def login():
         if user is None:
             return make_response('User not found', 404, {'WWW-Authenticate': 'Basic realm="User Not Found"'})
         if(user.CorrectPassword(auth.password)):
-            token = jwt.encode({'user': auth.username, 'exp': datetime.datetime.utcnow(
-            ) + datetime.timedelta(seconds=10)}, current_app.config['secret_key'])
-            return redirect(url_for('expenses.get_by_user', userId=user.id, token=token))
+            token = jwt.encode({'user': auth.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}, current_app.config['secret_key'])
+            return jsonify({'token': token}), 200
         else:
             return make_response('User not found', 404, {'WWW-Authenticate': 'Basic realm="User Not Found"'})
 
