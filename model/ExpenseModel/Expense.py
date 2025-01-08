@@ -12,3 +12,8 @@ class Expense(db.Model, BaseClass):
     @classmethod
     def getByCategory(cls, catId):
         return cls.query.filter(cls.category == catId).all()
+    
+    @classmethod
+    def getTotalByCategory(cls, catId):
+        total = db.session.query(db.func.sum(cls.price)).filter(cls.category == catId).scalar()
+        return total or 0.0

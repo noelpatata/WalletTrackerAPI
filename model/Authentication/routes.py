@@ -8,9 +8,9 @@ from . import auth_bp
 from .User import User
 from strings import Errors
 
-def ExpenseCategoryToken_required(f):
+def token_required(f):
     def decorated(*args, **kwargs):
-        print(args, file=sys.stderr)
+        
         auth_header = request.headers.get('Authorization')
         if not auth_header:
             return jsonify({'error': 'Authorization header is missing'}), 403
@@ -24,10 +24,16 @@ def ExpenseCategoryToken_required(f):
             return jsonify({'error': Errors.missing}), 403
         try:
             payload = jwt.decode(token, current_app.config['PUBLIC_KEY'], algorithms="RS256")
-            userId_from_url = kwargs.get('userId')
-            if userId_from_url != payload.get('user'):
+            userId_from_query = request.args.get('userId', type=int)
+            print("------------------", file=sys.stderr)
+
+            print(userId_from_query, file=sys.stderr)
+            print("------------------", file=sys.stderr)
+            print(payload.get('user'), file=sys.stderr)
+            print("------------------", file=sys.stderr)
+            if userId_from_query != payload.get('user'):
                 return jsonify({'error': 'User ID missing from token'}), 403
-            if not userId_from_url:
+            if not userId_from_query:
                 return jsonify({'error': 'User ID missing from token'}), 403
         except jwt.ExpiredSignatureError:
             return jsonify({'error': Errors.expired}), 403
@@ -37,29 +43,6 @@ def ExpenseCategoryToken_required(f):
     decorated.__name__ = f.__name__
     return decorated
 
-def token_required(f):
-    def decorated(*args, **kwargs):
-        print(args, file=sys.stderr)
-        auth_header = request.headers.get('Authorization')
-        if not auth_header:
-            return jsonify({'error': 'Authorization header is missing'}), 403
-
-        if not auth_header.startswith("Bearer "):
-            return jsonify({'error': 'Invalid Authorization header format. Use Bearer <token>'}), 403
-
-        token = auth_header.split(" ")[1]
-        
-        if not token:
-            return jsonify({'error': Errors.missing}), 403
-        try:
-            jwt.decode(token, current_app.config['PUBLIC_KEY'], algorithms="RS256")
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': Errors.expired}), 403
-        except jwt.InvalidTokenError:
-            return jsonify({'error': Errors.invalid}), 403
-        return f(*args, **kwargs)
-    decorated.__name__ = f.__name__
-    return decorated
 
 @auth_bp.route("/login")
 def login():
