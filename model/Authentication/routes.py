@@ -6,6 +6,7 @@ from flask import request, jsonify, make_response, current_app, redirect, url_fo
 import jwt
 from . import auth_bp
 from .User import User
+from strings import Errors
 
 def token_required(f):
     def decorated(*args, **kwargs):
@@ -16,19 +17,23 @@ def token_required(f):
         if not auth_header.startswith("Bearer "):
             return jsonify({'error': 'Invalid Authorization header format. Use Bearer <token>'}), 403
 
-        # Extract the token
         token = auth_header.split(" ")[1]
         
         if not token:
-            return jsonify({'error': 'token is missing'}), 403
+            return jsonify({'error': Errors.missing}), 403
         try:
-            jwt.decode(token, current_app.config['secret_key'], algorithms="HS256")
+            payload = jwt.decode(token, current_app.config['PUBLIC_KEY'], algorithms="RS256")
+            userId_from_url = kwargs.get('userId')
+            if userId_from_url != payload.get('user'):
+                return jsonify({'error': 'User ID missing from token'}), 403
+            if not userId_from_url:
+                return jsonify({'error': 'User ID missing from token'}), 403
         except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'token has expired'}), 403
+            return jsonify({'error': Errors.expired}), 403
         except jwt.InvalidTokenError:
-            return jsonify({'error': 'token is invalid'}), 403
+            return jsonify({'error': Errors.invalid}), 403
         return f(*args, **kwargs)
-    decorated.__name__ = f.__name__  # Ensure Flask recognizes the wrapped function
+    decorated.__name__ = f.__name__
     return decorated
 
 @auth_bp.route("/login")
@@ -42,7 +47,11 @@ def login():
         if user is None:
             return make_response('User not found', 404, {'WWW-Authenticate': 'Basic realm="User Not Found"'})
         if(user.CorrectPassword(auth.password)):
-            token = jwt.encode({'user': auth.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}, current_app.config['secret_key'])
+            payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
+            token = jwt.encode(
+                payload,
+                current_app.config['PRIVATE_KEY'],
+                algorithm='RS256')
             return jsonify({'token': token}), 200
         else:
             return make_response('User not found', 404, {'WWW-Authenticate': 'Basic realm="User Not Found"'})

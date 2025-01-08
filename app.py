@@ -6,7 +6,8 @@ from strings import Strings
 
 app = Flask(__name__)
 
-app.config['secret_key'] = Strings.secretKey
+app.config['PRIVATE_KEY'] = open('private_key.pem', 'r').read()
+app.config['PUBLIC_KEY'] = open('public_key.pem', 'r').read()
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://root:{Strings.mysqlPassword}@localhost/WalletTracker'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

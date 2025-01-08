@@ -1,3 +1,6 @@
 strings.py
 __pycache__
 env
+generateKeys.py
+private_key.pem
+public_key.pem
