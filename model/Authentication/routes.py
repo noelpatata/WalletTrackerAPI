@@ -8,8 +8,9 @@ from . import auth_bp
 from .User import User
 from strings import Errors
 
-def token_required(f):
+def ExpenseCategoryToken_required(f):
     def decorated(*args, **kwargs):
+        print(args, file=sys.stderr)
         auth_header = request.headers.get('Authorization')
         if not auth_header:
             return jsonify({'error': 'Authorization header is missing'}), 403
@@ -28,6 +29,30 @@ def token_required(f):
                 return jsonify({'error': 'User ID missing from token'}), 403
             if not userId_from_url:
                 return jsonify({'error': 'User ID missing from token'}), 403
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': Errors.expired}), 403
+        except jwt.InvalidTokenError:
+            return jsonify({'error': Errors.invalid}), 403
+        return f(*args, **kwargs)
+    decorated.__name__ = f.__name__
+    return decorated
+
+def token_required(f):
+    def decorated(*args, **kwargs):
+        print(args, file=sys.stderr)
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            return jsonify({'error': 'Authorization header is missing'}), 403
+
+        if not auth_header.startswith("Bearer "):
+            return jsonify({'error': 'Invalid Authorization header format. Use Bearer <token>'}), 403
+
+        token = auth_header.split(" ")[1]
+        
+        if not token:
+            return jsonify({'error': Errors.missing}), 403
+        try:
+            jwt.decode(token, current_app.config['PUBLIC_KEY'], algorithms="RS256")
         except jwt.ExpiredSignatureError:
             return jsonify({'error': Errors.expired}), 403
         except jwt.InvalidTokenError:

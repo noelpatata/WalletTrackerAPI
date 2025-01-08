@@ -7,7 +7,7 @@ import binascii
 
 
 class User(db.Model, BaseClass):
-    __tablename__ = 'user'
+    __tablename__ = 'User'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String, nullable=False)
