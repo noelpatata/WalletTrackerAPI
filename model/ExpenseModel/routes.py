@@ -15,7 +15,7 @@ def get_by_category():
     expenses_json = [expense.serialize() for expense in expenses]
     return jsonify(expenses_json)
 
-@expense_bp.route('/Expense/total/', methods=['GET'])  # query parameter catId
+@expense_bp.route('/Expense/total/', methods=['GET'])  # query parameter userId, catId
 @token_required
 def get_total_by_category():
     catId = request.args.get('catId')
@@ -23,7 +23,6 @@ def get_total_by_category():
         return jsonify({'error': 'Category not provided'}), 403
 
     try:
-        # Assuming Expense has a method to calculate the total by category
         total = Expense.getTotalByCategory(catId)
         return jsonify({'total': total}), 200
     except Exception as e:
