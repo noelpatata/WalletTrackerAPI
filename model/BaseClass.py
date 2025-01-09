@@ -35,3 +35,7 @@ class BaseClass:
     @classmethod
     def simple_filter(cls, **kwargs):
         return cls.query.filter_by(**kwargs).all()
+    
+    @classmethod
+    def rollback(cls):
+        cls.session.rollback()

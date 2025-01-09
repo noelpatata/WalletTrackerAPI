@@ -1,6 +1,5 @@
 # Wallet Tracker Rest API
 ## Installation
-### Linux:
 ``` bash
 git clone https://github.com/noelpatata/WalletTrackerAPI.git && cd WalletTrackerAPI/
 ```
@@ -50,6 +49,11 @@ CREATE TABLE Expense (
 ```
 ---
 ## Deployment
+### Linux
 ``` bash
 uwsgi --http [ip address]:[port] --master -p [thread number] -w [python file name (without .py extension)]:app
+```
+### Windows
+``` cmd
+waitress-serve --host 127.0.0.1 hello:app
 ```

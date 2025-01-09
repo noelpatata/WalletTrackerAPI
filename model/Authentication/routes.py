@@ -25,12 +25,6 @@ def token_required(f):
         try:
             payload = jwt.decode(token, current_app.config['PUBLIC_KEY'], algorithms="RS256")
             userId_from_query = request.args.get('userId', type=int)
-            print("------------------", file=sys.stderr)
-
-            print(userId_from_query, file=sys.stderr)
-            print("------------------", file=sys.stderr)
-            print(payload.get('user'), file=sys.stderr)
-            print("------------------", file=sys.stderr)
             if userId_from_query != payload.get('user'):
                 return jsonify({'error': 'User ID missing from token'}), 403
             if not userId_from_query:

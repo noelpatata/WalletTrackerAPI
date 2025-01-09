@@ -18,3 +18,25 @@ def get_by_user():
     
     cat_json = [category.serialize() for category in categories]
     return jsonify(cat_json)
+
+@expensecategory_bp.route('/ExpenseCategory/', methods=['POST'])  # query parameter userId
+@token_required
+def create_expense_category():
+    try:
+        #data extraction
+        data = request.get_json()
+        
+        name = data.get('name')
+        user_id = data.get('userId')
+
+        #validation
+        if not name or not user_id:
+            return jsonify({'error': 'Invalid data'}), 500    
+
+        #save data
+        new_category = ExpenseCategory(name=name, user=user_id)
+        new_category.save()
+        return jsonify(new_category.serialize()), 201
+
+    except Exception as e:
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
