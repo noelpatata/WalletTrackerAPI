@@ -19,7 +19,6 @@ class BaseClass:
         for column in self.__table__.columns:
             
             value = getattr(self, column.name)
-            print(type(value).__name__, file=sys.stderr)
             if isinstance(value, date):
                 value = value.isoformat()
             result[column.name] = value
