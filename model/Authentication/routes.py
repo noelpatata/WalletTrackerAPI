@@ -23,10 +23,7 @@ def token_required(f):
         if not token:
             return jsonify({'error': Errors.missing}), 403
         try:
-            payload = jwt.decode(token, current_app.config['PUBLIC_KEY'], algorithms="RS256")
             userId_from_query = request.args.get('userId', type=int)
-            if userId_from_query != payload.get('user'):
-                return jsonify({'error': 'User ID missing from token'}), 403
             if not userId_from_query:
                 return jsonify({'error': 'User ID missing from token'}), 403
         except jwt.ExpiredSignatureError:
@@ -54,7 +51,7 @@ def login():
                 payload,
                 current_app.config['PRIVATE_KEY'],
                 algorithm='RS256')
-            return jsonify({'token': token}), 200
+            return jsonify({'userId': user.id, 'token': token}), 200
         else:
             return make_response('User not found', 404, {'WWW-Authenticate': 'Basic realm="User Not Found"'})
 
