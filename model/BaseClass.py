@@ -39,3 +39,8 @@ class BaseClass:
     @classmethod
     def rollback(cls):
         cls.session.rollback()
+    
+    @classmethod
+    def delete_all(cls):
+        cls.query.delete()
+        cls.query.session.commit()

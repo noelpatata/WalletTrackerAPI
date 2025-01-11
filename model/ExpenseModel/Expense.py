@@ -8,6 +8,7 @@ class Expense(db.Model, BaseClass):
     price = db.Column(db.Float, nullable=False)
     expenseDate = db.Column(db.Date, nullable=False)
     category = db.Column(db.Integer, db.ForeignKey('ExpenseCategory._id'), nullable=False)
+    user = db.Column(db.Integer, db.ForeignKey('User.id'), nullable=False)
     
     @classmethod
     def getByCategory(cls, catId):
@@ -17,3 +18,8 @@ class Expense(db.Model, BaseClass):
     def getTotalByCategory(cls, catId):
         total = db.session.query(db.func.sum(cls.price)).filter(cls.category == catId).scalar()
         return total or 0.0
+    @classmethod
+    def deleteByUser(cls, userId):
+        cls.query.filter(cls.user == userId).delete()
+        db.session.commit()
+        

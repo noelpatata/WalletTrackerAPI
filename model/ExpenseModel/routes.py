@@ -28,8 +28,14 @@ def get_total_by_category():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
-# insert Expense
-
-# delete Expense
-
-# update Expense
+@expense_bp.route('/Expense/all/', methods=['DELETE'])
+@token_required
+def delete_all():
+    userId = request.args.get('userId')
+    if not userId:
+        return jsonify({'error': 'User not provided'}), 403
+    try:
+        Expense.deleteByUser(userId)
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

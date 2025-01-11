@@ -24,10 +24,10 @@ def get_by_user():
 def create_expense_category():
     try:
         #data extraction
+        user_id = request.args.get('userId')
         data = request.get_json()
         
         name = data.get('name')
-        user_id = data.get('userId')
 
         #validation
         if not name or not user_id:

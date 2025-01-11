@@ -56,5 +56,27 @@ def login():
             return make_response('User not found', 404, {'WWW-Authenticate': 'Basic realm="User Not Found"'})
 
     return make_response('Could not Verify', 401, {'WWW-Authenticate': 'Basic realm ="Login Required"'})
+
+@auth_bp.route("/autologin")
+def autologin():
+    try:
+        user_id = request.args.get('userId')
+    
+        #validation
+        if not user_id:
+            return jsonify({'error': 'No userId passed'}), 500   
+        
+        user = User.query.filter(User.id == user_id).first()
+        if user is None:
+            return jsonify({'error': 'User not found'}), 404
+        
+        payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
+        token = jwt.encode(
+            payload,
+            current_app.config['PRIVATE_KEY'],
+            algorithm='RS256')
+        return jsonify({'userId': user.id, 'token': token}), 200
+    except Exception as e:
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
         
     
