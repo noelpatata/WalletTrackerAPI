@@ -21,8 +21,8 @@ python generateKeys.pem
 
 ### Mysql Database Script
 ``` mysql
-create database WalletTracker;
-use WalletTracker;
+CREATE DATABASE WalletTracker;
+USE WalletTracker;
 CREATE TABLE User (
   id BIGINT NOT NULL AUTO_INCREMENT,
   username VARCHAR(45) NOT NULL,
@@ -44,7 +44,9 @@ CREATE TABLE Expense (
     price DOUBLE,
     expenseDate DATE,
     category BIGINT,
-    FOREIGN KEY (category) REFERENCES ExpenseCategory(id) ON DELETE CASCADE
+    user BIGINT,
+    FOREIGN KEY (user) REFERENCES User(id) ON DELETE CASCADE,
+    FOREIGN KEY (category) REFERENCES ExpenseCategory(id) ON DELETE CASCADE
 );
 ```
 ---
