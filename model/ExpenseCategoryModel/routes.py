@@ -6,7 +6,7 @@ from .ExpenseCategory import ExpenseCategory
 from model.ExpenseModel.Expense import Expense
 from ..Authentication.routes import token_required
 
-@expensecategory_bp.route('/ExpenseCategory/Id', methods=['GET']) #query parameter userId
+@expensecategory_bp.route('/ExpenseCategory/Id/', methods=['GET']) #query parameter userId
 @token_required
 def get_by_id():
     userId = request.args.get('catId')
@@ -15,8 +15,7 @@ def get_by_id():
         total = Expense.getTotalByCategory(category.id)
         category.setTotal(total) 
     
-    cat_json = [category.serialize() for category in categories]
-    return jsonify(cat_json)
+    return jsonify(category.serialize())
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['GET']) #query parameter userId
 @token_required
