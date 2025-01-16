@@ -22,3 +22,7 @@ class ExpenseCategory(db.Model, BaseClass):
     @classmethod
     def getByUser(cls, userId):
         return cls.query.filter(cls.user == userId).all()
+    
+    @classmethod
+    def getById(cls, userId):
+        return cls.query.filter(cls.id == userId).all()
