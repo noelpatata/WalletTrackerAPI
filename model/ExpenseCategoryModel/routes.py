@@ -50,3 +50,17 @@ def create_expense_category():
 
     except Exception as e:
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+@expensecategory_bp.route('/ExpenseCategory/', methods=['DELETE'])
+@token_required
+def delete_by_id():
+    try:
+        catId = request.args.get('catId')
+
+        if not catId:
+            return jsonify({'error': 'CategoryId not provided'}), 500    
+
+        ExpenseCategory.deleteById(catId)
+        return jsonify({'success': True}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

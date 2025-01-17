@@ -26,3 +26,8 @@ class ExpenseCategory(db.Model, BaseClass):
     @classmethod
     def getById(cls, userId):
         return cls.query.filter(cls.id == userId).all()
+    
+    @classmethod
+    def deleteById(cls, catId):
+        cls.query.filter(cls.id == catId).delete()
+        db.session.commit()

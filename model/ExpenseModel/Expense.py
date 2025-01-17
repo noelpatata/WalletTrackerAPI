@@ -22,4 +22,8 @@ class Expense(db.Model, BaseClass):
     def deleteByUser(cls, userId):
         cls.query.filter(cls.user == userId).delete()
         db.session.commit()
+    @classmethod
+    def deleteById(cls, expenseId):
+        cls.query.filter(cls.id == expenseId).delete()
+        db.session.commit()
         
