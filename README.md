@@ -5,7 +5,7 @@ git clone https://github.com/noelpatata/WalletTrackerAPI.git && cd WalletTracker
 ```
 
 ``` bash
-python3.8 -m venv env
+python3 -m venv env
 ```
 
 ### Activate
@@ -17,15 +17,29 @@ Windows
 ``` cmd
 ./env/bin/activate
 ```
+### Install dependencies
 ``` bash
 pip install -r requirements.txt
 ```
+
 ---
 
 ## Preparation
 In order to encrypt the tokens with asymetric cryptography, you need to generate the keys.
 ``` bash
 python generateKeys.pem
+```
+
+---
+
+## Deployment
+### Linux
+``` bash
+uwsgi --http [ip address]:[port] --master -p [thread number] -w [python file name (without .py extension)]:app
+```
+### Windows
+``` cmd
+waitress-serve --host 127.0.0.1 hello:app
 ```
 
 ### Mysql Database Script
@@ -59,12 +73,4 @@ CREATE TABLE Expense (
 );
 ```
 ---
-## Deployment
-### Linux
-``` bash
-uwsgi --http [ip address]:[port] --master -p [thread number] -w [python file name (without .py extension)]:app
-```
-### Windows
-``` cmd
-waitress-serve --host 127.0.0.1 hello:app
-```
+
