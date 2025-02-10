@@ -11,6 +11,8 @@ python3 -m venv env
 ### Activate
 Linux
 ``` bash
+sudo apt install -y default-libmysqlclient-dev pkg-config build-essential
+sudo apt install -y python3.12-dev
 source env/bin/activate
 ```
 Windows
