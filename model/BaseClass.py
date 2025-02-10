@@ -23,7 +23,19 @@ class BaseClass:
                 value = value.isoformat()
             result[column.name] = value
         return result
+    def edit(self, **kwargs):
+        """
+        Edit all given attributes of the object.
 
+        Args:
+            **kwargs: Key-value pairs where keys are attribute names and values are new values.
+        """
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                if key != "id" and key != "user":
+                    setattr(self, key, value)
+        self.save()
+        
     @classmethod
     def get_all(cls):
         return cls.query.all()

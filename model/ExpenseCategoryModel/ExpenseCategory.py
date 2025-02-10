@@ -18,6 +18,11 @@ class ExpenseCategory(db.Model, BaseClass):
         result['total'] = self.total #custom serialization
         
         return result
+    
+    def editName(self, new_name):
+        if hasattr(self, 'name'):
+            self.name = new_name
+            self.save()
 
     @classmethod
     def getByUser(cls, userId):
@@ -25,9 +30,14 @@ class ExpenseCategory(db.Model, BaseClass):
     
     @classmethod
     def getById(cls, userId):
-        return cls.query.filter(cls.id == userId).all()
+        return cls.query.filter(cls.id == userId).first()
     
     @classmethod
     def deleteById(cls, catId):
         cls.query.filter(cls.id == catId).delete()
+        db.session.commit()
+        
+    @classmethod
+    def getAllByUserId(cls, userId):
+        cls.query.filter(cls.user == userId).all()
         db.session.commit()

@@ -17,7 +17,7 @@ source env/bin/activate
 ```
 Windows
 ``` cmd
-./env/bin/activate
+.\env\Scripts\activate
 ```
 ### Install dependencies
 ``` bash

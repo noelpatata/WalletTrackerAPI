@@ -9,11 +9,11 @@ from ..Authentication.routes import token_required
 @expensecategory_bp.route('/ExpenseCategory/Id/', methods=['GET']) #query parameter userId
 @token_required
 def get_by_id():
-    userId = request.args.get('catId')
-    categories = ExpenseCategory.getById(userId)
-    for category in categories:
-        total = Expense.getTotalByCategory(category.id)
-        category.setTotal(total) 
+    catId = request.args.get('catId')
+    category = ExpenseCategory.getById(catId)
+    total = Expense.getTotalByCategory(category.id)
+    category.setTotal(total) 
+        
     
     return jsonify(category.serialize())
 
@@ -64,3 +64,19 @@ def delete_by_id():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@expensecategory_bp.route('/ExpenseCategory/editName', methods=['POST'])
+@token_required
+def edit_name():
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'Category not provided'}), 500    
+        
+        cat = ExpenseCategory.getById(data.get('id'))
+        cat.editName(data.get('name'))
+        return jsonify({'success': True}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
