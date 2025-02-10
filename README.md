@@ -8,6 +8,15 @@ git clone https://github.com/noelpatata/WalletTrackerAPI.git && cd WalletTracker
 python3.8 -m venv env
 ```
 
+### Activate
+Linux
+``` bash
+source env/bin/activate
+```
+Windows
+``` cmd
+./env/bin/activate
+```
 ``` bash
 pip install -r requirements.txt
 ```
