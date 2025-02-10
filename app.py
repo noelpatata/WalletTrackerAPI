@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.config['PRIVATE_KEY'] = open('private_key.pem', 'r').read()
 app.config['PUBLIC_KEY'] = open('public_key.pem', 'r').read()
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://root:{Strings.mysqlPassword}@localhost/WalletTracker'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://{Strings.mysqlUsername}:{Strings.mysqlPassword}@{Strings.mysqlHost}/{Strings.mysqlDbName}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['debug']=True
 
