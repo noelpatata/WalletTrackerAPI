@@ -1,6 +1,9 @@
+import base64
 from __future__ import print_function # In python 2.7
 import sys
-
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.backends import default_backend
 import datetime
 from flask import request, jsonify, make_response, current_app
 import jwt
@@ -10,10 +13,12 @@ from strings import Errors
 
 def token_required(f):
     def decorated(*args, **kwargs):
-        
+
+        cipheredText = request.args.get('cipherered')
         auth_header = request.headers.get('Authorization')
-        if not auth_header:
-            return jsonify({'error': 'Authorization header is missing'}), 403
+
+        if not cipheredText or not auth_header:
+            return jsonify({'error': 'Authentication error'}), 403
 
         if not auth_header.startswith("Bearer "):
             return jsonify({'error': 'Invalid Authorization header format. Use Bearer <token>'}), 403
@@ -30,7 +35,33 @@ def token_required(f):
             )
             userId_from_payload = payload.get('user')
             if not userId_from_payload:
-                return jsonify({'error': 'User ID missing from token'}), 403
+                return jsonify({'error': 'Authentication error'}), 403
+            
+            user = User.get_by_id(userId_from_payload)
+            if not user:
+                return jsonify({'error': 'Authentication error'}), 403
+            
+            public_key_pem = user.public_key.encode('utf-8')  # Assuming `public_key` is stored as a string in the DB
+            public_key = serialization.load_pem_public_key(
+                public_key_pem,
+                backend=default_backend()
+            )
+
+            # Decode the Base64-encoded ciphered text
+            ciphered_bytes = base64.b64decode(cipheredText)
+
+            # Decrypt the ciphered text using the public key
+            decrypted_text = public_key.decrypt(
+                ciphered_bytes,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
+            )
+            if decrypted_text != "somerandomtext":
+                return jsonify({'error': 'Authentication error'}), 403
+
             kwargs['userId'] = userId_from_payload
         except jwt.ExpiredSignatureError:
             return jsonify({'error': Errors.expired}), 403
