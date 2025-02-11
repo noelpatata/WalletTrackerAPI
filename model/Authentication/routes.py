@@ -1,5 +1,4 @@
 import base64
-from __future__ import print_function # In python 2.7
 import sys
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
