@@ -2,7 +2,7 @@ from __future__ import print_function # In python 2.7
 import sys
 
 import datetime
-from flask import request, jsonify, make_response, current_app, redirect, url_for
+from flask import request, jsonify, make_response, current_app
 import jwt
 from . import auth_bp
 from .User import User
@@ -23,9 +23,15 @@ def token_required(f):
         if not token:
             return jsonify({'error': Errors.missing}), 403
         try:
-            userId_from_query = request.args.get('userId', type=int)
-            if not userId_from_query:
+            payload = jwt.decode(
+                token,
+                current_app.config['PUBLIC_KEY'],
+                algorithms=['RS256']
+            )
+            userId_from_payload = payload.get('user')
+            if not userId_from_payload:
                 return jsonify({'error': 'User ID missing from token'}), 403
+            kwargs['userId'] = userId_from_payload
         except jwt.ExpiredSignatureError:
             return jsonify({'error': Errors.expired}), 403
         except jwt.InvalidTokenError:
