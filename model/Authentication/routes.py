@@ -1,3 +1,4 @@
+import re
 import base64
 import sys
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -15,7 +16,6 @@ def token_required(f):
 
         cipheredText = request.args.get('cipherered')
         auth_header = request.headers.get('Authorization')
-
         if not cipheredText or not auth_header:
             return jsonify({'error': 'Authentication error'}), 403
 
@@ -39,16 +39,13 @@ def token_required(f):
             user = User.get_by_id(userId_from_payload)
             if not user:
                 return jsonify({'error': 'Authentication error'}), 403
-            
             public_key_pem = user.public_key.encode('utf-8')  # Assuming `public_key` is stored as a string in the DB
             public_key = serialization.load_pem_public_key(
                 public_key_pem,
                 backend=default_backend()
             )
-
             # Decode the Base64-encoded ciphered text
             ciphered_bytes = base64.b64decode(cipheredText)
-
             # Decrypt the ciphered text using the public key
             decrypted_text = public_key.decrypt(
                 ciphered_bytes,
@@ -95,8 +92,40 @@ def login():
 @auth_bp.route("/autologin")
 def autologin():
     try:
+        cipheredText = request.args.get('ciphered')
+        if not cipheredText:
+             return jsonify({'error': 'Authentication error'}), 403
         user_id = request.args.get('userId')
-    
+        user = User.get_by_id(user_id)
+        if not user:
+            return jsonify({'error': 'Authentication error'}), 403
+        public_key_pem = user.public_key.strip()
+
+        # Clean the PEM string
+        public_key_pem = clean_pem(public_key_pem)
+        print(public_key_pem, file=sys.stderr)
+        public_key = serialization.load_pem_public_key(
+            public_key_pem,
+            backend=default_backend()
+        )
+        print('4', file=sys.stderr)
+        # Decode the Base64-encoded ciphered text
+        ciphered_bytes = base64.b64decode(cipheredText)
+        print('5', file=sys.stderr)
+        # Decrypt the ciphered text using the public key
+        decrypted_text = public_key.decrypt(
+            ciphered_bytes,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        print(decrypted_text, file=sys.stderr)
+        if decrypted_text != "somerandomtext":
+            return jsonify({'error': 'Authentication error'}), 403
+            
+        print(f'userId: {user_id}', file=sys.stderr)
         #validation
         if not user_id:
             return jsonify({'error': 'No userId passed'}), 500   
@@ -112,6 +141,18 @@ def autologin():
             algorithm='RS256')
         return jsonify({'userId': user.id, 'token': token}), 200
     except Exception as e:
+        print(f'error: {e}', file=sys.stderr)
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
-        
+def clean_pem(pem_string):
+    # Remove headers and footers
+    base64_data = re.sub(r'[-]+[A-Za-z0-9\s]+[-]+', '', pem_string).strip()
+    
+    # Remove all non-Base64 characters (e.g., spaces)
+    cleaned_base64 = re.sub(r'[^A-Za-z0-9+/=]', '', base64_data)
+    
+    # Re-wrap the Base64 data into lines of 64 characters
+    wrapped_base64 = '\n'.join([cleaned_base64[i:i+64] for i in range(0, len(cleaned_base64), 64)])
+    
+    # Reconstruct the PEM string
+    return f"-----BEGIN PUBLIC KEY-----\n{wrapped_base64}\n-----END PUBLIC KEY-----"
     
