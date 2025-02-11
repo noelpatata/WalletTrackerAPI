@@ -43,7 +43,6 @@ def token_required(f):
 
 @auth_bp.route("/login")
 def login():
-    
     auth = request.authorization
     if auth:
         

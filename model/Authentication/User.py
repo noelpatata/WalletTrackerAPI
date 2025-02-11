@@ -13,6 +13,7 @@ class User(db.Model, BaseClass):
     username = db.Column(db.String, nullable=False)
     password = db.Column(db.String, nullable=True)
     salt = db.Column(db.String, nullable=False)  # Store the salt
+    public_key = db.Column(db.String, nullable=False)
 
     def set_password(self, password):
         salt = os.urandom(32)  # Generate a 16-byte random salt

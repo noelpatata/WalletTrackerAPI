@@ -53,6 +53,7 @@ CREATE TABLE User (
   username VARCHAR(45) NOT NULL,
   password LONGTEXT NULL,
   salt LONGTEXT NULL,
+  public_key LONGTEXT NULL,
   PRIMARY KEY (id),
   UNIQUE INDEX username_UNIQUE (username ASC) VISIBLE
 );
