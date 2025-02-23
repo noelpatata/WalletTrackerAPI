@@ -85,18 +85,19 @@ def register():
     
     #user creation   
     privkey = generateKeys.generate_private_key() 
-    pubkey = generateKeys.generate_public_key(privkey)
+    privkeystring = generateKeys.generate_public_key_string(privkey)
+    pubkeystring = generateKeys.generate_public_key_string(privkey)
     
     newUser = User(
         username = newUserName,
-        private_key = privkey,
-        public_key = pubkey
+        private_key = privkeystring,
+        public_key = pubkeystring
     )
 
     
     newUser.set_password(data.get('password'))
     
-    return jsonify({'userId': newUser.id}), 200
+    return jsonify({'userId': newUser.id, 'public_key':newUser.public_key}), 200
 
 @auth_bp.route("/login")
 def login():

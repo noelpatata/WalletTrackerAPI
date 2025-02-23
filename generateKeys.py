@@ -10,6 +10,16 @@ def generate_private_key():
         key_size=2048,
         backend=default_backend()
     )
+    return  private_key
+
+def generate_private_key_string(private_key):
+    # TODO
+    # Hay que devolver un array con clave privada y publica, y guardar en base de datos texto, actualmente se guarda el objeto
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+        backend=default_backend()
+    )
     return  private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.TraditionalOpenSSL,
@@ -17,7 +27,7 @@ def generate_private_key():
         )   
     
 
-def generate_public_key(private_key):
+def generate_public_key_string(private_key):
     public_key = private_key.public_key()
     return public_key.public_bytes(
                 encoding=serialization.Encoding.PEM,
