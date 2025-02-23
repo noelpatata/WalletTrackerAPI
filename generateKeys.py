@@ -3,8 +3,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
 def generate_private_key():
-    # TODO
-    # Hay que devolver un array con clave privada y publica, y guardar en base de datos texto, actualmente se guarda el objeto
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -13,8 +11,6 @@ def generate_private_key():
     return  private_key
 
 def generate_private_key_string(private_key):
-    # TODO
-    # Hay que devolver un array con clave privada y publica, y guardar en base de datos texto, actualmente se guarda el objeto
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
