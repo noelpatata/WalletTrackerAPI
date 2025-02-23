@@ -1,6 +1,7 @@
 import re
 import base64
 import sys
+import generateKeys
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
@@ -67,6 +68,35 @@ def token_required(f):
     decorated.__name__ = f.__name__
     return decorated
 
+@auth_bp.route("/register", methods=['POST'])
+def register():
+    
+    # validation
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+    
+    newUserName = data.get('username')
+    if not newUserName or newUserName == "":
+        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+    
+    if User.check_exists(newUserName):
+        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+    
+    #user creation   
+    privkey = generateKeys.generate_private_key() 
+    pubkey = generateKeys.generate_public_key(privkey)
+    
+    newUser = User(
+        username = newUserName,
+        private_key = privkey,
+        public_key = pubkey
+    )
+
+    
+    newUser.set_password(data.get('password'))
+    
+    return jsonify({'userId': newUser.id}), 200
 
 @auth_bp.route("/login")
 def login():
@@ -100,12 +130,9 @@ def autologin():
         if not user:
             return jsonify({'error': 'Authentication error'}), 403
         public_key_pem = user.public_key.strip()
-
-        # Clean the PEM string
         public_key_pem = clean_pem(public_key_pem)
-        print(public_key_pem, file=sys.stderr)
         public_key = serialization.load_pem_public_key(
-            public_key_pem,
+            public_key_pem.encode('utf-8'),  # Ensure it's bytes
             backend=default_backend()
         )
         print('4', file=sys.stderr)

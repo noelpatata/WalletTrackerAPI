@@ -13,7 +13,13 @@ class User(db.Model, BaseClass):
     username = db.Column(db.String, nullable=False)
     password = db.Column(db.String, nullable=True)
     salt = db.Column(db.String, nullable=False)  # Store the salt
+    private_key = db.Column(db.String, nullable=False)
     public_key = db.Column(db.String, nullable=False)
+    
+    @classmethod
+    def check_exists(cls, username):
+        userFromQuery = cls.query.filter(cls.username == username).first()
+        return userFromQuery != None
 
     def set_password(self, password):
         salt = os.urandom(32)  # Generate a 16-byte random salt
