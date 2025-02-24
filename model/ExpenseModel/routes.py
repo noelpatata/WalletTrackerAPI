@@ -3,12 +3,12 @@ import sys
 from flask import jsonify, request
 from . import expense_bp
 from .Expense import Expense
-from ..Authentication.routes import token_required
+from ..Authentication.routes import encrypt_and_sign_data
 
 
 # Endpoints
 @expense_bp.route('/Expense/Id/', methods=['GET']) #query parameter userId, catId
-@token_required
+@encrypt_and_sign_data
 def get_by_id(userId):
     expenseId = request.args.get('expenseId')
     if not expenseId:
@@ -18,7 +18,7 @@ def get_by_id(userId):
     return jsonify(expense_json)
 
 @expense_bp.route('/Expense/', methods=['GET']) #query parameter userId, catId
-@token_required
+@encrypt_and_sign_data
 def get_by_category(userId):
     catId = request.args.get('catId')
     if not catId:
@@ -28,7 +28,7 @@ def get_by_category(userId):
     return jsonify(expenses_json)
 
 @expense_bp.route('/Expense/', methods=['POST'])  # query parameter userId
-@token_required
+@encrypt_and_sign_data
 def create_expense(userId):
     try:
         #data extraction
@@ -51,7 +51,7 @@ def create_expense(userId):
         return jsonify({'success': False, 'message':  f'An error occurred: {str(e)}'}), 203
 
 @expense_bp.route('/Expense/total/', methods=['GET'])  # query parameter userId, catId
-@token_required
+@encrypt_and_sign_data
 def get_total_by_category(userId):
     catId = request.args.get('catId')
     if not catId:
@@ -64,7 +64,7 @@ def get_total_by_category(userId):
         return jsonify({'success': False, 'message':  str(e)}), 500
     
 @expense_bp.route('/Expense/all/', methods=['DELETE'])
-@token_required
+@encrypt_and_sign_data
 def delete_all(userId):
     if not userId:
         return jsonify({'success': False, 'message':  'User not provided'}), 203
@@ -75,7 +75,7 @@ def delete_all(userId):
         return jsonify({'success': False, 'message':  str(e)}), 203
     
 @expense_bp.route('/Expense/', methods=['DELETE'])
-@token_required
+@encrypt_and_sign_data
 def delete_by_id(userId):
     expenseId = request.args.get('expenseId')
     if not expenseId:
@@ -87,7 +87,7 @@ def delete_by_id(userId):
         return jsonify({'success': False, 'message':  str(e)}), 203
     
 @expense_bp.route('/Expense/edit', methods=['POST'])
-@token_required
+@encrypt_and_sign_data
 def edit(userId):
     try:
         data = request.get_json()

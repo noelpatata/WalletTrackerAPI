@@ -15,6 +15,7 @@ class User(db.Model, BaseClass):
     salt = db.Column(db.String, nullable=False)  # Store the salt
     private_key = db.Column(db.String, nullable=False)
     public_key = db.Column(db.String, nullable=False)
+    client_public_key = db.Column(db.String, nullable=False)
     
     @classmethod
     def check_exists(cls, username):

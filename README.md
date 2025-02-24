@@ -55,6 +55,7 @@ CREATE TABLE User (
   salt LONGTEXT NULL,
   private_key LONGTEXT NULL,
   public_key LONGTEXT NULL,
+  client_public_key LONGTEXT NULL,
   PRIMARY KEY (id),
   UNIQUE INDEX username_UNIQUE (username ASC) VISIBLE
 );

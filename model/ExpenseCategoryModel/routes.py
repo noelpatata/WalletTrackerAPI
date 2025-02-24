@@ -4,10 +4,10 @@ from flask import jsonify, request
 from . import expensecategory_bp
 from .ExpenseCategory import ExpenseCategory
 from model.ExpenseModel.Expense import Expense
-from ..Authentication.routes import token_required
+from ..Authentication.routes import encrypt_and_sign_data
 
 @expensecategory_bp.route('/ExpenseCategory/Id/', methods=['GET']) #query parameter userId
-@token_required
+@encrypt_and_sign_data
 def get_by_id(userId):
     try:
         catId = request.args.get('catId')
@@ -20,7 +20,7 @@ def get_by_id(userId):
     
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['GET']) #query parameter userId
-@token_required
+@encrypt_and_sign_data
 def get_by_user(userId):
     try:
         if not userId:
@@ -36,7 +36,7 @@ def get_by_user(userId):
     
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['POST'])  # query parameter userId
-@token_required
+@encrypt_and_sign_data
 def create_expense_category(userId):
     try:
         #data extraction
@@ -56,7 +56,7 @@ def create_expense_category(userId):
     except Exception as e:
         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 203
 @expensecategory_bp.route('/ExpenseCategory/', methods=['DELETE'])
-@token_required
+@encrypt_and_sign_data
 def delete_by_id(userId):
     try:
         catId = request.args.get('catId')
@@ -71,7 +71,7 @@ def delete_by_id(userId):
         return jsonify({'success': False, 'message': str(e)}), 203
     
 @expensecategory_bp.route('/ExpenseCategory/editName', methods=['POST'])
-@token_required
+@encrypt_and_sign_data
 def edit_name(userId):
     try:
         data = request.get_json()

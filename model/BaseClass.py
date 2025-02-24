@@ -32,7 +32,7 @@ class BaseClass:
         """
         for key, value in kwargs.items():
             if hasattr(self, key):
-                if key != "id" and key != "user":
+                if key != "id" and key != "username":
                     setattr(self, key, value)
         self.save()
         
