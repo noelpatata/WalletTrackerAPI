@@ -85,7 +85,7 @@ def register():
     
     #user creation   
     privkey = generateKeys.generate_private_key() 
-    privkeystring = generateKeys.generate_public_key_string(privkey)
+    privkeystring = generateKeys.generate_private_key_string(privkey)
     pubkeystring = generateKeys.generate_public_key_string(privkey)
     
     newUser = User(
@@ -99,6 +99,26 @@ def register():
     
     return jsonify({'userId': newUser.id, 'public_key':newUser.public_key}), 200
 
+@auth_bp.route("/userPubKey", methods=['POST'])
+def get_user_pub_key():
+    
+    # validation
+    auth = request.authorization
+    if not auth:
+        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+    
+    username = auth.username
+    if not username or username == "":
+        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+    
+    user = User.query.filter(User.username == auth.username).first()
+    if not user:
+        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+    if(not user.CorrectPassword(auth.password)):
+        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+    
+    return jsonify({'userId': user.id, 'public_key':user.public_key}), 200
+
 @auth_bp.route("/login")
 def login():
     auth = request.authorization
@@ -107,7 +127,7 @@ def login():
         user = User.query.filter(User.username == auth.username).first()
         
         if user is None:
-            return make_response('User not found', 404, {'WWW-Authenticate': 'Basic realm="User Not Found"'})
+            return jsonify({'success': False, 'message': 'Invalid data'}), 203
         if(user.CorrectPassword(auth.password)):
             payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
             token = jwt.encode(
@@ -120,53 +140,84 @@ def login():
 
     return make_response('Could not Verify', 401, {'WWW-Authenticate': 'Basic realm ="Login Required"'})
 
-@auth_bp.route("/autologin")
+@auth_bp.route("/autologin", methods=['POST'])
 def autologin():
     try:
-        cipheredText = request.args.get('ciphered')
-        if not cipheredText:
-             return jsonify({'error': 'Authentication error'}), 403
-        user_id = request.args.get('userId')
-        user = User.get_by_id(user_id)
+        data = request.get_json()
+        if not data or 'userId' not in data or 'ciphered' not in data:
+            return jsonify({'success': False, 'message': 'Invalid data'}), 400
+
+        user_id = data.get('userId')
+        ciphered_text = data.get('ciphered')
+
+        # Validate userId and ciphered text
+        if not user_id or not ciphered_text:
+            return jsonify({'success': False, 'message': 'Invalid data'}), 400
+
+        # Fetch the user from the database
+        user = User.query.filter_by(id=user_id).first()
         if not user:
-            return jsonify({'error': 'Authentication error'}), 403
-        public_key_pem = user.public_key.strip()
-        public_key_pem = clean_pem(public_key_pem)
-        public_key = serialization.load_pem_public_key(
-            public_key_pem.encode('utf-8'),  # Ensure it's bytes
+            return jsonify({'success': False, 'message': 'Invalid data'}), 404
+
+        # Load the private key (assuming it's stored securely in the user object)
+        private_key_pem = user.private_key.strip()  # Ensure no extra whitespace
+        if not private_key_pem:
+            return jsonify({'success': False, 'message': 'Invalid data'}), 500
+
+        # Deserialize the private key
+        private_key = serialization.load_pem_private_key(
+            private_key_pem.encode('utf-8'),
+            password=None,
             backend=default_backend()
         )
-        print('4', file=sys.stderr)
+
         # Decode the Base64-encoded ciphered text
-        ciphered_bytes = base64.b64decode(cipheredText)
-        print('5', file=sys.stderr)
-        # Decrypt the ciphered text using the public key
-        decrypted_text = public_key.decrypt(
-            ciphered_bytes,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
+        try:
+            ciphered_bytes = base64.b64decode(ciphered_text)
+        except Exception as e:
+            return jsonify({'success': False, 'message': 'Invalid ciphered text'}), 400
+
+        # Decrypt the ciphered text using the private key
+        print(f'-----------------------------', file=sys.stderr)
+        print(f'-----------------------------', file=sys.stderr)
+        print(f'-----------------------------', file=sys.stderr)
+        
+        print(f'{private_key_pem}', file=sys.stderr)
+        print(f'{private_key}', file=sys.stderr)
+        print(f'{ciphered_text}', file=sys.stderr)
+        print(f'{ciphered_bytes}', file=sys.stderr)
+        print(f'-----------------------------', file=sys.stderr)
+        print(f'-----------------------------', file=sys.stderr)
+        print(f'-----------------------------', file=sys.stderr)
+        try:
+            decrypted_text = private_key.decrypt(
+                ciphered_bytes,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
             )
-        )
-        print(decrypted_text, file=sys.stderr)
-        if decrypted_text != "somerandomtext":
-            return jsonify({'error': 'Authentication error'}), 403
-            
-        print(f'userId: {user_id}', file=sys.stderr)
-        #validation
-        if not user_id:
-            return jsonify({'error': 'No userId passed'}), 500   
-        
-        user = User.query.filter(User.id == user_id).first()
-        if user is None:
-            return jsonify({'error': 'User not found'}), 404
-        
-        payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
+        except Exception as e:
+            print(f'error: {e}', file=sys.stderr)
+            return jsonify({'success': False, 'message': f'Decryption failed \n {e}'}), 403
+
+        # Verify the decrypted text (replace this with actual verification logic)
+        if decrypted_text.decode('utf-8') != "s0m3r4nd0mt3xt":
+            return jsonify({'success': False, 'message': 'Authentication failed'}), 403
+
+        # Generate a JWT token
+        payload = {
+            'user': user.id,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+        }
         token = jwt.encode(
             payload,
-            current_app.config['PRIVATE_KEY'],
-            algorithm='RS256')
+            current_app.config['PRIVATE_KEY'],  # Ensure this is your app's private key
+            algorithm='RS256'
+        )
+
+        # Return the response
         return jsonify({'userId': user.id, 'token': token}), 200
     except Exception as e:
         print(f'error: {e}', file=sys.stderr)
