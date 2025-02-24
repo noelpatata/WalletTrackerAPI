@@ -1,5 +1,3 @@
-from __future__ import print_function # In python 2.7
-import sys
 from flask import jsonify, request
 from . import expensecategory_bp
 from .ExpenseCategory import ExpenseCategory

@@ -1,7 +1,5 @@
 import json
-import re
 import base64
-import sys
 import generateKeys
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes

@@ -1,5 +1,3 @@
-
-import sys
 from flask import jsonify, request
 from . import expense_bp
 from .Expense import Expense
