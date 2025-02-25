@@ -13,7 +13,6 @@ app.config['PUBLIC_KEY'] = open('public_key.pem', 'r').read()
 connectionString = f'mysql://{Strings.mysqlUsername}:{Strings.mysqlPassword}@{Strings.mysqlHost}/{Strings.mysqlDbName}'
 app.config['SQLALCHEMY_DATABASE_URI'] = connectionString
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['debug']=True
 
 
 db.init_app(app)

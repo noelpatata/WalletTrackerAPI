@@ -25,7 +25,7 @@ def get_by_category(userId):
     expenses_json = [expense.serialize() for expense in expenses]
     return jsonify(expenses_json)
 
-@expense_bp.route('/Expense/', methods=['POST'])  # query parameter userId
+@expense_bp.route('/Expense/create', methods=['POST'])  # query parameter userId
 @encrypt_and_sign_data
 def create_expense(userId):
     try:

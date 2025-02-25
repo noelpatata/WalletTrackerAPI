@@ -33,7 +33,7 @@ def get_by_user(userId):
         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 203
     
 
-@expensecategory_bp.route('/ExpenseCategory/', methods=['POST'])  # query parameter userId
+@expensecategory_bp.route('/ExpenseCategory/create', methods=['POST'])  # query parameter userId
 @encrypt_and_sign_data
 def create_expense_category(userId):
     try:

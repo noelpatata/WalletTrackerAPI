@@ -1,3 +1,4 @@
+from functools import wraps
 import json
 import base64
 import generateKeys
@@ -12,6 +13,7 @@ from .User import User
 from strings import Errors
 
 def token_required(f):
+    @wraps(f)
     def decorated(*args, **kwargs):
 
         cipher_header = request.headers.get('Cipher')
@@ -103,6 +105,7 @@ def sign_with_private_key(data, private_key_str):
 # Middleware to intercept requests and responses
 def encrypt_and_sign_data(func):
     @token_required
+    @wraps(func)
     def wrapper(userId, *args, **kwargs):
         try:
             # Fetch the user and their keys from the database
@@ -163,23 +166,28 @@ def register():
 
 @auth_bp.route("/login/")
 def login():
-    auth = request.authorization
-    if auth:
-        user = User.query.filter(User.username == auth.username).first()
-        
-        if user is None:
-            return jsonify({'success': False, 'message': 'Invalid data'}), 203
-        if(user.CorrectPassword(auth.password)):
-            payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
-            token = jwt.encode(
-                payload,
-                current_app.config['PRIVATE_KEY'],
-                algorithm='RS256')
-            return jsonify({'userId': user.id, 'token': token}), 200
-        else:
-            return make_response('User not found', 404, {'WWW-Authenticate': 'Basic realm="User Not Found"'})
+    try:
+        auth = request.authorization
+        if auth:
+            user = User.query.filter(User.username == auth.username).first()
+            
+            if user is None:
+                return jsonify({'success': False, 'message': 'Invalid data'}), 203
+            if(user.CorrectPassword(auth.password)):
+                payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
+                token = jwt.encode(
+                    payload,
+                    current_app.config['PRIVATE_KEY'],
+                    algorithm='RS256')
+                return jsonify({'token': token}), 200
+            else:
+                return make_response('User not found', 404, {'WWW-Authenticate': 'Basic realm="User Not Found"'})
 
-    return make_response('Could not Verify', 401, {'WWW-Authenticate': 'Basic realm ="Login Required"'})
+        return make_response('Could not Verify', 401, {'WWW-Authenticate': 'Basic realm ="Login Required"'})
+    except Exception as e:
+        print(f'{e}', file=sys.stderr)
+
+    
 
 @auth_bp.route("/autologin/", methods=['POST'])
 def autologin():
@@ -247,30 +255,32 @@ def autologin():
 @auth_bp.route("/getUserServerPubKey/", methods=['POST'])
 def get_user_pub_key():
     
-    # validation
-    auth = request.authorization
-    if not auth:
+    data = request.get_json()
+
+    if not data:
         return jsonify({'success': False, 'message': 'Invalid data'}), 203
+
     
-    username = auth.username
+    username = data.get('username')
+    password = data.get('password')
+
     if not username or username == "":
         return jsonify({'success': False, 'message': 'Invalid data'}), 203
+    if not password or password == "":
+        return jsonify({'success': False, 'message': 'Invalid data'}), 203
     
-    user = User.query.filter(User.username == auth.username).first()
+    user = User.query.filter(User.username == username).first()
     if not user:
         return jsonify({'success': False, 'message': 'Invalid data'}), 203
-    if(not user.CorrectPassword(auth.password)):
+    if(not user.CorrectPassword(password)):
         return jsonify({'success': False, 'message': 'Invalid data'}), 203
     
-    return jsonify({'userId': user.id, 'public_key':user.public_key}), 200
+    return jsonify({'userId': user.id, 'publicKey':user.public_key}), 200
 
 @auth_bp.route("/setUserClientPubKey/", methods=['POST'])
 def set_user_pub_key():
     
     # validation
-    auth = request.authorization
-    if not auth:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
     data = request.get_json()
 
     if not data:
@@ -281,14 +291,17 @@ def set_user_pub_key():
         return jsonify({'success': False, 'message': 'Invalid data'}), 203
 
     
-    username = auth.username
+    username = data.get('username')
+    password = data.get('password')
     if not username or username == "":
         return jsonify({'success': False, 'message': 'Invalid data'}), 203
+    if not password or password == "":
+        return jsonify({'success': False, 'message': 'Invalid data'}), 203
     
-    user = User.query.filter(User.username == auth.username).first()
+    user = User.query.filter(User.username == username).first()
     if not user:
         return jsonify({'success': False, 'message': 'Invalid data'}), 203
-    if(not user.CorrectPassword(auth.password)):
+    if(not user.CorrectPassword(password)):
         return jsonify({'success': False, 'message': 'Invalid data'}), 203
     user.client_public_key = pub_key_b64
     user.save()
