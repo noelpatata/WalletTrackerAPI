@@ -1,6 +1,7 @@
 from functools import wraps
 import json
 import base64
+import sys
 import generateKeys
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
@@ -156,7 +157,8 @@ def register():
     newUser = User(
         username = newUserName,
         private_key = privkeystring,
-        public_key = pubkeystring
+        public_key = pubkeystring,
+        client_public_key = ""
     )
 
     
@@ -194,25 +196,25 @@ def autologin():
     try:
         data = request.get_json()
         if not data or 'userId' not in data or 'ciphered' not in data:
-            return jsonify({'success': False, 'message': 'Invalid data'}), 203
+            return jsonify({'success': False, 'message': 'Invalid data1'}), 203
 
         user_id = data.get('userId')
         ciphered_textbs64 = data.get('ciphered')
 
         # Validate userId and ciphered text
         if not user_id or not ciphered_textbs64:
-            return jsonify({'success': False, 'message': 'Invalid data'}), 203
+            return jsonify({'success': False, 'message': 'Invalid data2'}), 203
 
         # Fetch the user from the database
         user = User.query.filter_by(id=user_id).first()
         if not user:
-            return jsonify({'success': False, 'message': 'Invalid data'}), 203
+            return jsonify({'success': False, 'message': 'Invalid data3'}), 203
 
         # Load the private key (assuming it's stored securely in the user object)
         public_key_pem = base64.b64decode(user.client_public_key)
           # Ensure no extra whitespace
         if not public_key_pem:
-            return jsonify({'success': False, 'message': 'Invalid data'}), 203
+            return jsonify({'success': False, 'message': 'Invalid data4'}), 203
 
             # Deserialize the private key
         public_key = serialization.load_pem_public_key(
@@ -223,9 +225,9 @@ def autologin():
         try:
             signature_bytes = base64.b64decode(ciphered_textbs64)
         except Exception as e:
-            return jsonify({'success': False, 'message': 'Invalid data'}), 203
+            return jsonify({'success': False, 'message': 'Invalid data5'}), 203
         except Exception as e:
-            return jsonify({'success': False, 'message': f'Invalid data'}), 203
+            return jsonify({'success': False, 'message': f'Invalid data6'}), 203
             
         public_key.verify(
             signature_bytes,
@@ -251,7 +253,7 @@ def autologin():
         # Return the response
         return jsonify({'userId': user.id, 'token': token}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': f'{e}'}), 203
 @auth_bp.route("/getUserServerPubKey/", methods=['POST'])
 def get_user_pub_key():
     

@@ -14,7 +14,7 @@ def generate_private_key():
 def generate_private_key_string(private_key):
     private_bytes = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption()
     )
     return base64.b64encode(private_bytes).decode()
