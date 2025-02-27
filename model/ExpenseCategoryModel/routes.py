@@ -14,7 +14,7 @@ def get_by_id(userId):
         category.setTotal(total) 
         return jsonify(category.serialize())
     except Exception as e:
-        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 203
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
     
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['GET']) #query parameter userId
@@ -22,7 +22,7 @@ def get_by_id(userId):
 def get_by_user(userId):
     try:
         if not userId:
-            return jsonify({'success': False, 'message':  'User not provided'}), 203
+            return jsonify({'success': False, 'message':  'User not provided'}), 403
         categories = ExpenseCategory.getByUser(userId)
         for category in categories:
             total = Expense.getTotalByCategory(category.id)
@@ -30,29 +30,28 @@ def get_by_user(userId):
         cat_json = [category.serialize() for category in categories]
         return jsonify(cat_json)
     except Exception as e:
-        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 203
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
     
 
-@expensecategory_bp.route('/ExpenseCategory/create', methods=['POST'])  # query parameter userId
+@expensecategory_bp.route('/ExpenseCategory/create/', methods=['POST'])  # query parameter userId
 @encrypt_and_sign_data
 def create_expense_category(userId):
     try:
         #data extraction
         data = request.get_json()
-        
-        name = data.get('name')
+        catName = data.get('name')
 
         #validation
-        if not name or not userId:
-            return jsonify({'success': False, 'message': 'Invalid data'}), 203    
+        if not catName or not userId:
+            return jsonify({'success': False, 'message': 'Invalid data'}), 403    
 
         #save data
-        new_category = ExpenseCategory(name=name, user=userId)
+        new_category = ExpenseCategory(name=catName, user=userId)
         new_category.save()
-        return jsonify(new_category.serialize()), 201
+        return jsonify(new_category.serialize()), 200
 
     except Exception as e:
-        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 203
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
 @expensecategory_bp.route('/ExpenseCategory/', methods=['DELETE'])
 @encrypt_and_sign_data
 def delete_by_id(userId):
@@ -60,26 +59,26 @@ def delete_by_id(userId):
         catId = request.args.get('catId')
 
         if not catId:
-            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 203    
+            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
 
         ExpenseCategory.deleteById(catId)
         return jsonify({'success': True}), 200
 
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 203
+        return jsonify({'success': False, 'message': str(e)}), 403
     
-@expensecategory_bp.route('/ExpenseCategory/editName', methods=['POST'])
+@expensecategory_bp.route('/ExpenseCategory/editName/', methods=['POST'])
 @encrypt_and_sign_data
 def edit_name(userId):
     try:
         data = request.get_json()
 
         if not data:
-            return jsonify({'success': False, 'message': 'Category not provided'}), 203    
+            return jsonify({'success': False, 'message': 'Category not provided'}), 403    
         
         cat = ExpenseCategory.getById(data.get('id'))
         cat.editName(data.get('name'))
         return jsonify({'success': True}), 200
 
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 203
+        return jsonify({'success': False, 'message': str(e)}), 403

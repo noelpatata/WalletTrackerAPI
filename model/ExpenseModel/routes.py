@@ -10,7 +10,7 @@ from ..Authentication.routes import encrypt_and_sign_data
 def get_by_id(userId):
     expenseId = request.args.get('expenseId')
     if not expenseId:
-        return jsonify({'error': 'Expense id not provided'}), 203
+        return jsonify({'error': 'Expense id not provided'}), 403
     expense = Expense.get_by_id(expenseId)
     expense_json = expense.serialize()
     return jsonify(expense_json)
@@ -20,12 +20,12 @@ def get_by_id(userId):
 def get_by_category(userId):
     catId = request.args.get('catId')
     if not catId:
-        return jsonify({'error': 'Category not provided'}), 203
+        return jsonify({'error': 'Category not provided'}), 403
     expenses = Expense.getByCategory(catId)
     expenses_json = [expense.serialize() for expense in expenses]
     return jsonify(expenses_json)
 
-@expense_bp.route('/Expense/create', methods=['POST'])  # query parameter userId
+@expense_bp.route('/Expense/create/', methods=['POST'])  # query parameter userId
 @encrypt_and_sign_data
 def create_expense(userId):
     try:
@@ -38,7 +38,7 @@ def create_expense(userId):
 
         #validation
         if not price or not expenseDate or not catId or not userId:
-            return jsonify({'success': False, 'message': 'Bad request'}), 203    
+            return jsonify({'success': False, 'message': 'Bad request'}), 403    
         
         #save data
         new_expense = Expense(price=price, category = catId, user=userId, expenseDate = expenseDate)
@@ -46,7 +46,7 @@ def create_expense(userId):
         return jsonify({'success': True}), 200
 
     except Exception as e:
-        return jsonify({'success': False, 'message':  f'An error occurred: {str(e)}'}), 203
+        return jsonify({'success': False, 'message':  f'An error occurred: {str(e)}'}), 403
 
 @expense_bp.route('/Expense/total/', methods=['GET'])  # query parameter userId, catId
 @encrypt_and_sign_data
@@ -65,41 +65,41 @@ def get_total_by_category(userId):
 @encrypt_and_sign_data
 def delete_all(userId):
     if not userId:
-        return jsonify({'success': False, 'message':  'User not provided'}), 203
+        return jsonify({'success': False, 'message':  'User not provided'}), 403
     try:
         Expense.deleteByUser(userId)
         return jsonify({'success': True}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message':  str(e)}), 203
+        return jsonify({'success': False, 'message':  str(e)}), 403
     
 @expense_bp.route('/Expense/', methods=['DELETE'])
 @encrypt_and_sign_data
 def delete_by_id(userId):
     expenseId = request.args.get('expenseId')
     if not expenseId:
-        return jsonify({'success': False, 'message':  'ExpenseId not provided'}), 203
+        return jsonify({'success': False, 'message':  'ExpenseId not provided'}), 403
     try:
         Expense.deleteById(expenseId)
         return jsonify({'success': True}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message':  str(e)}), 203
+        return jsonify({'success': False, 'message':  str(e)}), 403
     
-@expense_bp.route('/Expense/edit', methods=['POST'])
+@expense_bp.route('/Expense/edit/', methods=['POST'])
 @encrypt_and_sign_data
 def edit(userId):
     try:
         data = request.get_json()
 
         if not data:
-            return jsonify({'success': False, 'message':  'Expense not provided'}), 203    
+            return jsonify({'success': False, 'message':  'Expense not provided'}), 403    
         id = data.get('id')
         exp = Expense.get_by_id(id)
         if not exp:
-            return jsonify({'success': False, 'message':  'Expense not found'}), 203    
+            return jsonify({'success': False, 'message':  'Expense not found'}), 403    
         
         exp.edit(**data)
         
         return jsonify({'success': True}), 200
 
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 203
+        return jsonify({'success': False, 'message': str(e)}), 403

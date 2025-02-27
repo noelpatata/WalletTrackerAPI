@@ -2,12 +2,14 @@ from functools import wraps
 import json
 import base64
 import sys
+import os
 import generateKeys
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
 import datetime
-from flask import request, jsonify, make_response, current_app
+from flask import Response, request, jsonify, make_response, current_app
 import jwt
 from . import auth_bp
 from .User import User
@@ -47,7 +49,7 @@ def token_required(f):
             public_key_pem = base64.b64decode(user.client_public_key)
           # Ensure no extra whitespace
             if not public_key_pem:
-                return jsonify({'success': False, 'message': 'Invalid data'}), 203
+                return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
             # Deserialize the private key
             public_key = serialization.load_pem_public_key(
@@ -58,9 +60,9 @@ def token_required(f):
             try:
                 signature_bytes = base64.b64decode(cipheredTextb64)
             except Exception as e:
-                return jsonify({'success': False, 'message': 'Invalid data'}), 203
+                return jsonify({'success': False, 'message': 'Invalid data'}), 403
             except Exception as e:
-                return jsonify({'success': False, 'message': f'Invalid data'}), 203
+                return jsonify({'success': False, 'message': f'Invalid data'}), 403
             
             public_key.verify(
                 signature_bytes,
@@ -82,23 +84,48 @@ def token_required(f):
     return decorated
 
 def encrypt_with_public_key(data, public_key_str):
-    public_key = serialization.load_pem_public_key(base64.b64decode(public_key_str), backend=default_backend())
-    encrypted_data = public_key.encrypt(
-        data.encode(),
+    # Load RSA public key
+    decoded_pem = base64.b64decode(public_key_str).decode()
+    public_key = serialization.load_pem_public_key(decoded_pem.encode(), backend=default_backend())
+
+    # 🔹 Generate a random AES key (32 bytes for AES-256)
+    aes_key = os.urandom(32)
+    
+    # 🔹 Generate a random IV (initialization vector) for AES-GCM
+    iv = os.urandom(12)
+
+    # 🔹 Encrypt the data using AES-GCM
+    cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+    ciphertext = encryptor.update(data.encode()) + encryptor.finalize()
+
+    # 🔹 Encrypt the AES key using RSA
+    encrypted_aes_key = public_key.encrypt(
+        aes_key,
         padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
             label=None
         )
     )
-    return base64.b64encode(encrypted_data).decode()
+
+    # 🔹 Return both encrypted AES key + encrypted data, base64 encoded
+    return {
+        "encrypted_aes_key": base64.b64encode(encrypted_aes_key).decode(),
+        "iv": base64.b64encode(iv).decode(),
+        "ciphertext": base64.b64encode(ciphertext).decode(),
+        "tag": base64.b64encode(encryptor.tag).decode()  # Authentication tag for AES-GCM
+    }
 
 # Helper function to sign data with the user's private key
 def sign_with_private_key(data, private_key_str):
     private_key = serialization.load_pem_private_key(base64.b64decode(private_key_str), password=None, backend=default_backend())
     signature = private_key.sign(
         data.encode(),
-        padding.PKCS1v15(),
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=32
+        ),
         hashes.SHA256()
     )
     return base64.b64encode(signature).decode()
@@ -109,30 +136,38 @@ def encrypt_and_sign_data(func):
     @wraps(func)
     def wrapper(userId, *args, **kwargs):
         try:
-            # Fetch the user and their keys from the database
-            
+
             user = User.query.get(userId)
             if not user:
-                return jsonify({'success': False, 'message': 'User not found'}), 203
+                return jsonify({'success': False, 'message': 'User not found'}), 403
             
-            # Encrypt the incoming request data using the user's client public key
             response = func(userId, *args, **kwargs)
-            
-            if response.status_code == 200 or response.status_code == 201:
-                response_data = response.get_json()  # Get the response JSON data
-                signature = sign_with_private_key("s0m3r4nd0mt3xt", user.private_key)
+
+            status_code = 200
+            if isinstance(response, tuple):
+                response, status_code = response
+
+            if not isinstance(response, Response):  
+                response = jsonify(response)
+
+            # Handle encryption & signing for both GET & POST methods
+            if request.method in ['GET', 'POST'] and status_code in [200, 201]:
+                response_data = response.get_json()
                 if response_data:
-                    # Convert the entire JSON object to a string (to be encrypted)
-                    json_str = json.dumps(response_data)
-                    
-                    # Encrypt JSON
+                    signature = sign_with_private_key("s0m3r4nd0mt3xt", user.private_key)
+                    json_str = json.dumps(response_data, ensure_ascii=False)
                     encrypted_json = encrypt_with_public_key(json_str, user.client_public_key)
-                    response.set_data(jsonify({'signature':f'{signature}', 'encrypted_data': encrypted_json}).data)
-            
+                    encrypted_response = jsonify({'signature': signature, 'encrypted_data': encrypted_json})
+                    encrypted_response.status_code = status_code
+                    return encrypted_response
+            response.status_code = status_code  # Ensure correct status code
             return response
+
         except Exception as e:
-            return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 203
+            return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
+
     return wrapper
+
 
 @auth_bp.route("/register/", methods=['POST'])
 def register():
@@ -140,14 +175,14 @@ def register():
     # validation
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     
     newUserName = data.get('username')
     if not newUserName or newUserName == "":
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     
     if User.check_exists(newUserName):
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     
     #user creation   
     privkey = generateKeys.generate_private_key() 
@@ -174,7 +209,7 @@ def login():
             user = User.query.filter(User.username == auth.username).first()
             
             if user is None:
-                return jsonify({'success': False, 'message': 'Invalid data'}), 203
+                return jsonify({'success': False, 'message': 'Invalid data'}), 403
             if(user.CorrectPassword(auth.password)):
                 payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
                 token = jwt.encode(
@@ -196,25 +231,25 @@ def autologin():
     try:
         data = request.get_json()
         if not data or 'userId' not in data or 'ciphered' not in data:
-            return jsonify({'success': False, 'message': 'Invalid data1'}), 203
+            return jsonify({'success': False, 'message': 'Invalid data1'}), 403
 
         user_id = data.get('userId')
         ciphered_textbs64 = data.get('ciphered')
 
         # Validate userId and ciphered text
         if not user_id or not ciphered_textbs64:
-            return jsonify({'success': False, 'message': 'Invalid data2'}), 203
+            return jsonify({'success': False, 'message': 'Invalid data2'}), 403
 
         # Fetch the user from the database
         user = User.query.filter_by(id=user_id).first()
         if not user:
-            return jsonify({'success': False, 'message': 'Invalid data3'}), 203
+            return jsonify({'success': False, 'message': 'Invalid data3'}), 403
 
         # Load the private key (assuming it's stored securely in the user object)
         public_key_pem = base64.b64decode(user.client_public_key)
           # Ensure no extra whitespace
         if not public_key_pem:
-            return jsonify({'success': False, 'message': 'Invalid data4'}), 203
+            return jsonify({'success': False, 'message': 'Invalid data4'}), 403
 
             # Deserialize the private key
         public_key = serialization.load_pem_public_key(
@@ -225,9 +260,9 @@ def autologin():
         try:
             signature_bytes = base64.b64decode(ciphered_textbs64)
         except Exception as e:
-            return jsonify({'success': False, 'message': 'Invalid data5'}), 203
+            return jsonify({'success': False, 'message': 'Invalid data5'}), 403
         except Exception as e:
-            return jsonify({'success': False, 'message': f'Invalid data6'}), 203
+            return jsonify({'success': False, 'message': f'Invalid data6'}), 403
             
         public_key.verify(
             signature_bytes,
@@ -253,29 +288,29 @@ def autologin():
         # Return the response
         return jsonify({'userId': user.id, 'token': token}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': f'{e}'}), 203
+        return jsonify({'success': False, 'message': f'{e}'}), 403
 @auth_bp.route("/getUserServerPubKey/", methods=['POST'])
 def get_user_pub_key():
     
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
     
     username = data.get('username')
     password = data.get('password')
 
     if not username or username == "":
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     if not password or password == "":
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     
     user = User.query.filter(User.username == username).first()
     if not user:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     if(not user.CorrectPassword(password)):
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     
     return jsonify({'userId': user.id, 'publicKey':user.public_key}), 200
 
@@ -286,25 +321,25 @@ def set_user_pub_key():
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
     pub_key_b64 = data.get('publicKey')
     if not pub_key_b64:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
     
     username = data.get('username')
     password = data.get('password')
     if not username or username == "":
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     if not password or password == "":
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     
     user = User.query.filter(User.username == username).first()
     if not user:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     if(not user.CorrectPassword(password)):
-        return jsonify({'success': False, 'message': 'Invalid data'}), 203
+        return jsonify({'success': False, 'message': 'Invalid data'}), 403
     user.client_public_key = pub_key_b64
     user.save()
     return jsonify({'success': True, 'message':'Public key sent successfully'}), 200
