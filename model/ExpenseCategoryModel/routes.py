@@ -1,15 +1,23 @@
+import sys
 from flask import jsonify, request
 from . import expensecategory_bp
 from .ExpenseCategory import ExpenseCategory
 from model.ExpenseModel.Expense import Expense
 from ..Authentication.routes import encrypt_and_sign_data
 
-@expensecategory_bp.route('/ExpenseCategory/Id/', methods=['GET']) #query parameter userId
+@expensecategory_bp.route('/ExpenseCategory/Id/', methods=['POST']) #query parameter userId
 @encrypt_and_sign_data
 def get_by_id(userId):
     try:
-        catId = request.args.get('catId')
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
+        catId = data.get('catId')
+        if not catId:
+            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
         category = ExpenseCategory.getById(catId)
+        if not category:
+            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
         total = Expense.getTotalByCategory(category.id)
         category.setTotal(total) 
         return jsonify(category.serialize())
@@ -52,11 +60,14 @@ def create_expense_category(userId):
 
     except Exception as e:
         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
-@expensecategory_bp.route('/ExpenseCategory/', methods=['DELETE'])
+@expensecategory_bp.route('/ExpenseCategory/delete/', methods=['POST'])
 @encrypt_and_sign_data
 def delete_by_id(userId):
     try:
-        catId = request.args.get('catId')
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
+        catId = data.get('catId')
 
         if not catId:
             return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
@@ -77,6 +88,8 @@ def edit_name(userId):
             return jsonify({'success': False, 'message': 'Category not provided'}), 403    
         
         cat = ExpenseCategory.getById(data.get('id'))
+        if not cat:
+            return jsonify({'success': False, 'message': 'Category not provided'}), 403    
         cat.editName(data.get('name'))
         return jsonify({'success': True}), 200
 

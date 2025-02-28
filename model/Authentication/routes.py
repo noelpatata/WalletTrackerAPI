@@ -153,13 +153,14 @@ def encrypt_and_sign_data(func):
             # Handle encryption & signing for both GET & POST methods
             if request.method in ['GET', 'POST'] and status_code in [200, 201]:
                 response_data = response.get_json()
-                if response_data:
-                    signature = sign_with_private_key("s0m3r4nd0mt3xt", user.private_key)
-                    json_str = json.dumps(response_data, ensure_ascii=False)
-                    encrypted_json = encrypt_with_public_key(json_str, user.client_public_key)
-                    encrypted_response = jsonify({'signature': signature, 'encrypted_data': encrypted_json})
-                    encrypted_response.status_code = status_code
-                    return encrypted_response
+
+                signature = sign_with_private_key("s0m3r4nd0mt3xt", user.private_key)
+                json_str = json.dumps(response_data, ensure_ascii=False)
+                encrypted_json = encrypt_with_public_key(json_str, user.client_public_key)
+                encrypted_response = jsonify({'signature': signature, 'encrypted_data': encrypted_json})
+                encrypted_response.status_code = status_code
+                return encrypted_response
+                    
             response.status_code = status_code  # Ensure correct status code
             return response
 
