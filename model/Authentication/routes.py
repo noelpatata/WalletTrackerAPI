@@ -141,7 +141,7 @@ def encrypt_and_sign_data(func):
             if not user:
                 return jsonify({'success': False, 'message': 'User not found'}), 403
             
-            response = func(userId, *args, **kwargs)
+            response = func(userId, *args, **kwargs) #get response from original request
 
             status_code = 200
             if isinstance(response, tuple):
@@ -152,16 +152,20 @@ def encrypt_and_sign_data(func):
 
             # Handle encryption & signing for both GET & POST methods
             if request.method in ['GET', 'POST'] and status_code in [200, 201]:
-                response_data = response.get_json()
+                try:
+                    response_data = response.get_json()
 
-                signature = sign_with_private_key("s0m3r4nd0mt3xt", user.private_key)
-                json_str = json.dumps(response_data, ensure_ascii=False)
-                encrypted_json = encrypt_with_public_key(json_str, user.client_public_key)
-                encrypted_response = jsonify({'signature': signature, 'encrypted_data': encrypted_json})
-                encrypted_response.status_code = status_code
-                return encrypted_response
+                    signature = sign_with_private_key("s0m3r4nd0mt3xt", user.private_key)
+                    json_str = json.dumps(response_data, ensure_ascii=False)
+                    encrypted_json = encrypt_with_public_key(json_str, user.client_public_key)
+                    encrypted_response = jsonify({'signature': signature, 'encrypted_data': encrypted_json})
+                    encrypted_response.status_code = status_code
+                    return encrypted_response # this is the actual response from the server    
+                except Exception as ex:
+                    return jsonify({'success': False, 'message': f'Invalid data'}), 403        
+                
                     
-            response.status_code = status_code  # Ensure correct status code
+            response.status_code = status_code
             return response
 
         except Exception as e:
@@ -205,7 +209,7 @@ def register():
 @auth_bp.route("/login/")
 def login():
     try:
-        auth = request.authorization
+        auth = request.authorization # get basic auth credentials
         if auth:
             user = User.query.filter(User.username == auth.username).first()
             
@@ -230,18 +234,16 @@ def login():
 @auth_bp.route("/autologin/", methods=['POST'])
 def autologin():
     try:
-        data = request.get_json()
+        data = request.get_json() # get json data from body
         if not data or 'userId' not in data or 'ciphered' not in data:
             return jsonify({'success': False, 'message': 'Invalid data1'}), 403
 
         user_id = data.get('userId')
         ciphered_textbs64 = data.get('ciphered')
 
-        # Validate userId and ciphered text
         if not user_id or not ciphered_textbs64:
             return jsonify({'success': False, 'message': 'Invalid data2'}), 403
 
-        # Fetch the user from the database
         user = User.query.filter_by(id=user_id).first()
         if not user:
             return jsonify({'success': False, 'message': 'Invalid data3'}), 403
