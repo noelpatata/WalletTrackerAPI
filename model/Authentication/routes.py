@@ -1,7 +1,6 @@
 from functools import wraps
 import json
 import base64
-import sys
 import os
 import generateKeys
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -21,7 +20,7 @@ def token_required(f):
 
         cipher_header = request.headers.get('Cipher')
         auth_header = request.headers.get('Authorization')
-        encrypted_data = request.get_json()
+        encrypted_data = request.get_json(silent = True)
         if not cipher_header or not auth_header:
             return jsonify({'error': 'Authentication error'}), 403
 
@@ -72,9 +71,13 @@ def token_required(f):
                 ),
                 hashes.SHA256()
             )
-            decrypted_data = decrypt_with_private_key(encrypted_data, user.private_key)
-            if not decrypted_data or not isinstance(decrypted_data, dict):
-                return jsonify({'error': 'Decryption failed'}), 403
+            if encrypted_data:
+                decrypted_data = decrypt_with_private_key(encrypted_data, user.private_key)
+                if not decrypted_data or not isinstance(decrypted_data, dict):
+                    return jsonify({'success': False, 'message': f'Invalid data'}), 403
+            else: 
+                decrypted_data = ''
+                
             
             kwargs['userId'] = userId_from_payload
             kwargs['decrypted_data'] = decrypted_data
@@ -261,7 +264,7 @@ def login():
 
         return make_response('Could not Verify', 401, {'WWW-Authenticate': 'Basic realm ="Login Required"'})
     except Exception as e:
-        print(f'{e}', file=sys.stderr)
+        return make_response('User not found', 404, {'WWW-Authenticate': 'Basic realm="User Not Found"'})
 
     
 
@@ -270,23 +273,23 @@ def autologin():
     try:
         data = request.get_json() # get json data from body
         if not data or 'userId' not in data or 'ciphered' not in data:
-            return jsonify({'success': False, 'message': 'Invalid data1'}), 403
+            return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
         user_id = data.get('userId')
         ciphered_textbs64 = data.get('ciphered')
 
         if not user_id or not ciphered_textbs64:
-            return jsonify({'success': False, 'message': 'Invalid data2'}), 403
+            return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
         user = User.query.filter_by(id=user_id).first()
         if not user:
-            return jsonify({'success': False, 'message': 'Invalid data3'}), 403
+            return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
         # Load the private key (assuming it's stored securely in the user object)
         public_key_pem = base64.b64decode(user.client_public_key)
           # Ensure no extra whitespace
         if not public_key_pem:
-            return jsonify({'success': False, 'message': 'Invalid data4'}), 403
+            return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
             # Deserialize the private key
         public_key = serialization.load_pem_public_key(
