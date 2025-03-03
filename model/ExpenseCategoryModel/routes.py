@@ -7,9 +7,9 @@ from ..Authentication.routes import encrypt_and_sign_data
 
 @expensecategory_bp.route('/ExpenseCategory/Id/', methods=['POST']) #query parameter userId
 @encrypt_and_sign_data
-def get_by_id(userId):
+def get_by_id(userId, decrypted_data):
     try:
-        data = request.get_json()
+        data = decrypted_data
         if not data:
             return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
         catId = data.get('catId')
@@ -27,7 +27,7 @@ def get_by_id(userId):
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['GET']) #query parameter userId
 @encrypt_and_sign_data
-def get_by_user(userId):
+def get_by_user(userId, decrypted_data):
     try:
         if not userId:
             return jsonify({'success': False, 'message':  'User not provided'}), 403
@@ -43,10 +43,10 @@ def get_by_user(userId):
 
 @expensecategory_bp.route('/ExpenseCategory/create/', methods=['POST'])  # query parameter userId
 @encrypt_and_sign_data
-def create_expense_category(userId):
+def create_expense_category(userId, decrypted_data):
     try:
         #data extraction
-        data = request.get_json()
+        data = decrypted_data
         catName = data.get('name')
 
         #validation
@@ -62,9 +62,9 @@ def create_expense_category(userId):
         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
 @expensecategory_bp.route('/ExpenseCategory/delete/', methods=['POST'])
 @encrypt_and_sign_data
-def delete_by_id(userId):
+def delete_by_id(userId, decrypted_data):
     try:
-        data = request.get_json()
+        data = decrypted_data
         if not data:
             return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
         catId = data.get('catId')
@@ -80,9 +80,9 @@ def delete_by_id(userId):
     
 @expensecategory_bp.route('/ExpenseCategory/editName/', methods=['POST'])
 @encrypt_and_sign_data
-def edit_name(userId):
+def edit_name(userId, decrypted_data):
     try:
-        data = request.get_json()
+        data = decrypted_data
 
         if not data:
             return jsonify({'success': False, 'message': 'Category not provided'}), 403    

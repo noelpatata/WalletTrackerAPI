@@ -8,8 +8,8 @@ from ..Authentication.routes import encrypt_and_sign_data
 # Endpoints
 @expense_bp.route('/Expense/Id', methods=['POST']) #query parameter userId, catId
 @encrypt_and_sign_data
-def get_by_id(userId):
-    data = request.get_json()
+def get_by_id(userId, decrypted_data):
+    data = decrypted_data
     if not data:
         return jsonify({'error': 'Expense not provided'}), 403
     expenseId = data.get('expenseId')
@@ -23,8 +23,8 @@ def get_by_id(userId):
 
 @expense_bp.route('/Expense/CatId/', methods=['POST']) #query parameter userId, catId
 @encrypt_and_sign_data
-def get_by_category(userId):
-    data = request.get_json()
+def get_by_category(userId, decrypted_data):
+    data = decrypted_data
     if not data:
         return jsonify({'error': 'Data not provided'}), 403
     catId = data.get('catId')
@@ -36,10 +36,10 @@ def get_by_category(userId):
 
 @expense_bp.route('/Expense/create/', methods=['POST'])  # query parameter userId
 @encrypt_and_sign_data
-def create_expense(userId):
+def create_expense(userId, decrypted_data):
     try:
         #data extraction
-        data = request.get_json()
+        data = decrypted_data
         if not data:
             return jsonify({'success': False, 'message': 'Invalid data'}), 403    
         userId = data.get('user')  
@@ -61,7 +61,7 @@ def create_expense(userId):
     
 @expense_bp.route('/Expense/all/', methods=['DELETE'])
 @encrypt_and_sign_data
-def delete_all(userId):
+def delete_all(userId, decrypted_data):
     if not userId:
         return jsonify({'success': False, 'message':  'User not provided'}), 403
     try:
@@ -72,8 +72,8 @@ def delete_all(userId):
     
 @expense_bp.route('/Expense/delete/', methods=['POST'])
 @encrypt_and_sign_data
-def delete_by_id(userId):
-    data = request.get_json()
+def delete_by_id(userId, decrypted_data):
+    data = decrypted_data
     if not data:
         return jsonify({'error': 'Category not provided'}), 403
     expenseId = data.get('expenseId')
@@ -87,9 +87,9 @@ def delete_by_id(userId):
     
 @expense_bp.route('/Expense/edit/', methods=['POST'])
 @encrypt_and_sign_data
-def edit(userId):
+def edit(userId, decrypted_data):
     try:
-        data = request.get_json()
+        data = decrypted_data
 
         if not data:
             return jsonify({'success': False, 'message':  'Expense not provided'}), 403    

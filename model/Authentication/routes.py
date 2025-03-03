@@ -21,6 +21,7 @@ def token_required(f):
 
         cipher_header = request.headers.get('Cipher')
         auth_header = request.headers.get('Authorization')
+        encrypted_data = request.get_json()
         if not cipher_header or not auth_header:
             return jsonify({'error': 'Authentication error'}), 403
 
@@ -47,16 +48,14 @@ def token_required(f):
             if not user:
                 return jsonify({'error': 'Authentication error'}), 403
             public_key_pem = base64.b64decode(user.client_public_key)
-          # Ensure no extra whitespace
+          
             if not public_key_pem:
                 return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
-            # Deserialize the private key
             public_key = serialization.load_pem_public_key(
                 public_key_pem
             )
 
-            # Decode the Base64-encoded ciphered text
             try:
                 signature_bytes = base64.b64decode(cipheredTextb64)
             except Exception as e:
@@ -73,8 +72,12 @@ def token_required(f):
                 ),
                 hashes.SHA256()
             )
+            decrypted_data = decrypt_with_private_key(encrypted_data, user.private_key)
+            if not decrypted_data or not isinstance(decrypted_data, dict):
+                return jsonify({'error': 'Decryption failed'}), 403
             
             kwargs['userId'] = userId_from_payload
+            kwargs['decrypted_data'] = decrypted_data
         except jwt.ExpiredSignatureError:
             return jsonify({'error': Errors.expired}), 403
         except jwt.InvalidTokenError:
@@ -116,6 +119,37 @@ def encrypt_with_public_key(data, public_key_str):
         "ciphertext": base64.b64encode(ciphertext).decode(),
         "tag": base64.b64encode(encryptor.tag).decode()  # Authentication tag for AES-GCM
     }
+def decrypt_with_private_key(encrypted_data, private_key_str):
+    try:
+        # Load RSA private key
+        private_key = serialization.load_pem_private_key(
+            base64.b64decode(private_key_str), password=None, backend=default_backend()
+        )
+
+        # Decode base64-encoded values
+        encrypted_aes_key = base64.b64decode(encrypted_data["encrypted_aes_key"])
+        iv = base64.b64decode(encrypted_data["iv"])
+        ciphertext = base64.b64decode(encrypted_data["ciphertext"])
+        tag = base64.b64decode(encrypted_data["tag"])
+
+        # Decrypt the AES key using the RSA private key
+        aes_key = private_key.decrypt(
+            encrypted_aes_key,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+
+        # Decrypt the ciphertext using AES-GCM
+        cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv, tag), backend=default_backend())
+        decryptor = cipher.decryptor()
+        decrypted_data = decryptor.update(ciphertext) + decryptor.finalize()
+
+        return json.loads(decrypted_data.decode())
+    except Exception as e:
+        return {"success": False, "message": f"Decryption failed: {str(e)}"}
 
 # Helper function to sign data with the user's private key
 def sign_with_private_key(data, private_key_str):
