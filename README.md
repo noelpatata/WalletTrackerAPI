@@ -64,6 +64,7 @@ CREATE TABLE ExpenseCategory (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name TEXT NOT NULL,
     user BIGINT,
+    sortOrder INT NULL,
     FOREIGN KEY (user) REFERENCES User(id) ON DELETE CASCADE
 );
 

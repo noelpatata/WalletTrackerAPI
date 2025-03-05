@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from dataBase.db import db
 from model.BaseClass import BaseClass
 
@@ -6,6 +7,7 @@ class ExpenseCategory(db.Model, BaseClass):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
+    sortOrder = db.Column(db.Integer, nullable=True)
     user = db.Column(db.Integer, db.ForeignKey('User.id'), nullable=False)
     total = 0
     
@@ -26,7 +28,23 @@ class ExpenseCategory(db.Model, BaseClass):
 
     @classmethod
     def getByUser(cls, userId):
-        return cls.query.filter(cls.user == userId).all()
+        query = db.session.query(
+            cls.sortOrder,
+            cls.id,
+            cls.name,
+            func.coalesce(cls.sortOrder, 0).label('sortOrder_null_first')  # Handle NULL sortOrder
+        ).filter(
+            cls.user == userId
+        ).group_by(
+            cls.id
+        ).order_by(
+            func.coalesce(cls.sortOrder, 0),
+            cls.sortOrder.asc(),
+            cls.id 
+        )
+
+        # Execute the query and return the result
+        return query.all()
     
     @classmethod
     def getById(cls, userId):
