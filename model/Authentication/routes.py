@@ -244,16 +244,16 @@ def register():
     
     return jsonify({'userId': newUser.id, 'public_key':newUser.public_key}), 200 '''
 
-@auth_bp.route("/login/")
+@auth_bp.route("/login/", methods=['POST'])
 def login():
     try:
-        auth = request.authorization # get basic auth credentials
+        auth = request.get_json() # get basic auth credentials
         if auth:
-            user = User.query.filter(User.username == auth.username).first()
+            user = User.query.filter(User.username == auth.get('username')).first()
             
             if user is None:
                 return jsonify({'success': False, 'message': 'Invalid data'}), 403
-            if(user.CorrectPassword(auth.password)):
+            if(user.CorrectPassword(auth.get('password'))):
                 payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
                 token = jwt.encode(
                     payload,
