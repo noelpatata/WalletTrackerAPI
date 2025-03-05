@@ -211,6 +211,7 @@ def encrypt_and_sign_data(func):
     return wrapper
 
 
+'''
 @auth_bp.route("/register/", methods=['POST'])
 def register():
     
@@ -241,7 +242,7 @@ def register():
     
     newUser.set_password(data.get('password'))
     
-    return jsonify({'userId': newUser.id, 'public_key':newUser.public_key}), 200
+    return jsonify({'userId': newUser.id, 'public_key':newUser.public_key}), 200 '''
 
 @auth_bp.route("/login/")
 def login():
