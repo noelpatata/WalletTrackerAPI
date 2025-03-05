@@ -28,12 +28,7 @@ class ExpenseCategory(db.Model, BaseClass):
 
     @classmethod
     def getByUser(cls, userId):
-        query = db.session.query(
-            cls.sortOrder,
-            cls.id,
-            cls.name,
-            func.coalesce(cls.sortOrder, 0).label('sortOrder_null_first')  # Handle NULL sortOrder
-        ).filter(
+        query = db.session.query.filter(
             cls.user == userId
         ).group_by(
             cls.id

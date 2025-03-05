@@ -1,3 +1,4 @@
+from sqlalchemy import desc
 from dataBase.db import db
 from model.BaseClass import BaseClass
 
@@ -12,7 +13,10 @@ class Expense(db.Model, BaseClass):
     
     @classmethod
     def getByCategory(cls, catId):
-        return cls.query.filter(cls.category == catId).all()
+        return cls.query.filter(cls.category == catId).order_by(
+            desc(cls.expenseDate),
+            desc(cls.id)
+        ).all()
     
     @classmethod
     def getTotalByCategory(cls, catId):
