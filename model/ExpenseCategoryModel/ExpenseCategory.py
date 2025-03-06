@@ -28,14 +28,14 @@ class ExpenseCategory(db.Model, BaseClass):
 
     @classmethod
     def getByUser(cls, userId):
-        query = db.session.query.filter(
+        query = db.session.query(cls).filter(
             cls.user == userId
         ).group_by(
             cls.id
         ).order_by(
             func.coalesce(cls.sortOrder, 0),
             cls.sortOrder.asc(),
-            cls.id 
+            cls.id
         )
 
         # Execute the query and return the result
