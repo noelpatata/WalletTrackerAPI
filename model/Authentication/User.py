@@ -38,6 +38,8 @@ class User(db.Model, BaseClass):
             'sha256', password.encode('utf-8'), salt, 100000
         )
         return self.password == binascii.hexlify(hashed_password).decode('utf-8')
+    def IsCorrectPassword(self, hashed_password):
+        return self.password == hashed_password
             
         
     
