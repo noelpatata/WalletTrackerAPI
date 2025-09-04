@@ -38,6 +38,7 @@ python generateKeys.pem
 ```
 ### Setup env variables
 The config.py defines the variables regarding secrets. We need to create them.
+
 Windows:
 
 ``` cmd
@@ -63,7 +64,7 @@ Linux:
 ``` bash
 uwsgi --http [ip address]:[port] --master -p [thread number] -w [python file name (without .py extension)]:app
 ```
-Windows
+Windows:
 
 ``` cmd
 waitress-serve --host 127.0.0.1 hello:app
