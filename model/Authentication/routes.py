@@ -2,7 +2,7 @@ from functools import wraps
 import json
 import base64
 import os
-import generateKeys
+import utils.generateKeys as generateKeys
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
@@ -12,7 +12,7 @@ from flask import Response, request, jsonify, make_response, current_app
 import jwt
 from . import auth_bp
 from .User import User
-from strings import Errors
+from constants import TokenErrors
 
 def token_required(f):
     @wraps(f)
@@ -32,7 +32,7 @@ def token_required(f):
         token = auth_header.split(" ")[1]
         
         if not token:
-            return jsonify({'error': Errors.missing}), 403
+            return jsonify({'error': TokenErrors.missing}), 403
         try:
             payload = jwt.decode(
                 token,
@@ -82,9 +82,9 @@ def token_required(f):
             kwargs['userId'] = userId_from_payload
             kwargs['decrypted_data'] = decrypted_data
         except jwt.ExpiredSignatureError:
-            return jsonify({'error': Errors.expired}), 403
+            return jsonify({'error': TokenErrors.expired}), 403
         except jwt.InvalidTokenError:
-            return jsonify({'error': Errors.invalid}), 403
+            return jsonify({'error': TokenErrors.invalid}), 403
         return f(*args, **kwargs)
     decorated.__name__ = f.__name__
     return decorated

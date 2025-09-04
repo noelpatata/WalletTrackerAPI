@@ -4,20 +4,24 @@
 git clone https://github.com/noelpatata/WalletTrackerAPI.git && cd WalletTrackerAPI/
 ```
 
+## Python's virtual environment
+### Create
+
 ``` bash
 python3 -m venv env
 ```
+### Activate 
+Linux:
 
-### Activate
-Linux
 ``` bash
 sudo apt install -y default-libmysqlclient-dev pkg-config build-essential
 sudo apt install -y python3.12-dev
 source env/bin/activate
 ```
-Windows
+Windows:
+
 ``` cmd
-.\env\Scripts\activate
+.\env\Scripts\Activate.ps1
 ```
 ### Install dependencies
 ``` bash
@@ -26,24 +30,62 @@ pip install -r requirements.txt
 
 ---
 
-## Preparation
+## Environment Preparation
+### Generate keys
 In order to encrypt the tokens with asymetric cryptography, you need to generate the keys.
 ``` bash
 python generateKeys.pem
 ```
+### Setup env variables
+The config.py defines the variables regarding secrets. We need to create them.
+Windows:
 
+``` cmd
+setx DB_HOST 127.0.0.1
+setx DB_USER myuser
+setx DB_PASSWORD mypassword
+setx DB_NAME mydb
+```
+Linux:
+
+``` bash
+export DB_HOST=127.0.0.1
+export DB_USER=myuser
+export DB_PASSWORD=mypassword
+export DB_NAME=mydb
+```
 ---
 
-## Deployment
-### Linux
+## Development
+### Serve web
+Linux:
+
 ``` bash
 uwsgi --http [ip address]:[port] --master -p [thread number] -w [python file name (without .py extension)]:app
 ```
-### Windows
+Windows
+
 ``` cmd
 waitress-serve --host 127.0.0.1 hello:app
 ```
+## Mysql Setup
+### Pull docker image
 
+``` bash
+docker pull mysql:8.0
+```
+### Create docker container
+
+``` bash
+docker run -d \
+  --name my_mysql \
+  -e MYSQL_ROOT_PASSWORD=rootpassword \
+  -e MYSQL_DATABASE=mydb \
+  -e MYSQL_USER=myuser \
+  -e MYSQL_PASSWORD=mypassword \
+  -p 3306:3306 \
+  mysql:8.0
+```
 ### Mysql Database Script
 ``` mysql
 CREATE DATABASE WalletTracker;

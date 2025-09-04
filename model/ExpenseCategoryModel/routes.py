@@ -1,5 +1,4 @@
-import sys
-from flask import jsonify, request
+from flask import jsonify
 from . import expensecategory_bp
 from .ExpenseCategory import ExpenseCategory
 from model.ExpenseModel.Expense import Expense

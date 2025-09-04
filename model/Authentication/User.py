@@ -4,8 +4,6 @@ import hashlib
 import os
 import binascii
 
-
-
 class User(db.Model, BaseClass):
     __tablename__ = 'User'
 

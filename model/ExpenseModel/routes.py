@@ -1,11 +1,9 @@
-import sys
 from flask import jsonify, request
 from . import expense_bp
 from .Expense import Expense
 from ..Authentication.routes import encrypt_and_sign_data
 
 
-# Endpoints
 @expense_bp.route('/Expense/Id', methods=['POST']) #query parameter userId, catId
 @encrypt_and_sign_data
 def get_by_id(userId, decrypted_data):

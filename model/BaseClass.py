@@ -1,8 +1,5 @@
 from datetime import date
 from dataBase.db import db
-import sys
-
-
 
 class BaseClass:
 
