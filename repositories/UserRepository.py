@@ -1,19 +1,21 @@
-from dataBase.db import db
-from model.BaseClass import BaseClass
+from db import db
 import hashlib
 import os
 import binascii
+from BaseRepository import BaseRepository
 
-class User(db.Model, BaseClass):
+class User(db.Model, BaseRepository):
     __tablename__ = 'User'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String, nullable=False)
     password = db.Column(db.String, nullable=True)
-    salt = db.Column(db.String, nullable=False)  # Store the salt
+    salt = db.Column(db.String, nullable=False)
     private_key = db.Column(db.String, nullable=False)
     public_key = db.Column(db.String, nullable=False)
     client_public_key = db.Column(db.String, nullable=False)
+    db_username = db.Column(db.String(255), nullable=False)
+    db_password = db.Column(db.String(255), nullable=False)
     
     @classmethod
     def check_exists(cls, username):

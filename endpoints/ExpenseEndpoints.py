@@ -1,8 +1,8 @@
-from flask import jsonify, request
-from . import expense_bp
-from .Expense import Expense
-from ..Authentication.routes import encrypt_and_sign_data
+from flask import Blueprint, jsonify
+from repositories.ExpenseRepository import Expense
+from endpoints.AuthenticationEndpoints import encrypt_and_sign_data
 
+expense_bp = Blueprint('expense', __name__)
 
 @expense_bp.route('/Expense/Id', methods=['POST']) #query parameter userId, catId
 @encrypt_and_sign_data

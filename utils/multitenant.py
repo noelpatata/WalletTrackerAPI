@@ -1,0 +1,83 @@
+import secrets
+import threading
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import scoped_session, sessionmaker
+from db import db
+from config import MYSQLHOST, MYSQLDBNAME
+
+_engine_cache = {}
+_lock = threading.Lock()
+
+
+def construct_db_name(base: str, user_id: int) -> str:
+    return f"{base}_u{user_id}"
+
+
+def construct_db_connection_string(db_username: str, db_password: str, user_id: int) -> str:
+    user_dbname = construct_db_name(MYSQLDBNAME, user_id)
+    return f"mysql://{db_username}:{db_password}@{MYSQLHOST}/{user_dbname}"
+
+
+def create_tenant_user_and_db(user):
+    """
+    Creates a dedicated DB and DB user for this tenant.
+    Updates the user object with db_username and db_password (caller must commit).
+    """
+    admin_engine = db.engine
+    user_dbname = construct_db_name(MYSQLDBNAME, user.id)
+    db_username = f"u{user.id}"
+    db_password = secrets.token_urlsafe(16)
+
+    with admin_engine.connect() as conn:
+        conn.execute(
+            text(
+                f"CREATE DATABASE IF NOT EXISTS `{user_dbname}` "
+                "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+            )
+        )
+
+        conn.execute(
+            text(f"CREATE USER IF NOT EXISTS '{db_username}'@'%' IDENTIFIED BY :pwd"),
+            {"pwd": db_password},
+        )
+
+        conn.execute(
+            text(f"GRANT ALL PRIVILEGES ON `{user_dbname}`.* TO '{db_username}'@'%'")
+        )
+        conn.execute(text("FLUSH PRIVILEGES"))
+
+    user.db_username = db_username
+    user.db_password = db_password
+    user.save()
+
+    initialise_tenant_db(user)
+
+
+def initialise_tenant_db(user):
+    """
+    Ensure tenant DB exists and return its engine.
+    """
+    with _lock:
+        if user.id in _engine_cache:
+            return _engine_cache[user.id]
+
+        uri = construct_db_connection_string(user.db_username, user.db_password, user.id)
+        eng = create_engine(uri, pool_pre_ping=True, pool_recycle=3600)
+        _engine_cache[user.id] = eng
+
+        from repositories import ExpenseRepository
+        from repositories import ExpenseCategoryRepository
+
+        db.metadata.create_all(
+            bind=eng, tables=[ExpenseRepository.__table__, ExpenseCategoryRepository.__table__]
+        )
+
+        return eng
+
+
+    def get_tenant_session(user):
+        """
+        Return a scoped session for the tenant DB.
+        """
+        eng = initialise_tenant_db(user)
+        return scoped_session(sessionmaker(bind=eng))

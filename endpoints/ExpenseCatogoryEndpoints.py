@@ -1,8 +1,9 @@
-from flask import jsonify
-from . import expensecategory_bp
-from .ExpenseCategory import ExpenseCategory
-from model.ExpenseModel.Expense import Expense
-from ..Authentication.routes import encrypt_and_sign_data
+from flask import Blueprint, jsonify
+from repositories.ExpenseCategoryRepository import ExpenseCategory
+from repositories.ExpenseRepository import Expense
+from endpoints.AuthenticationEndpoints import encrypt_and_sign_data
+
+expensecategory_bp = Blueprint('expensecategory', __name__)
 
 @expensecategory_bp.route('/ExpenseCategory/Id/', methods=['POST']) #query parameter userId
 @encrypt_and_sign_data

@@ -1,8 +1,8 @@
-from model.ExpenseModel import expense_bp 
-from model.ExpenseCategoryModel import expensecategory_bp 
-from model.Authentication import auth_bp
+from endpoints.ExpenseEndpoints import expense_bp 
+from endpoints.ExpenseCatogoryEndpoints import expensecategory_bp 
+from endpoints.AuthenticationEndpoints import auth_bp
 from flask import Flask
-from dataBase.db import db
+from db import db
 from config import MYSQLUSERNAME, MYSQLPASSWORD, MYSQLHOST, MYSQLDBNAME
 
 app = Flask(__name__)

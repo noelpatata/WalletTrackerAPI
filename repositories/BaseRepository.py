@@ -1,7 +1,7 @@
 from datetime import date
-from dataBase.db import db
+from db import db
 
-class BaseClass:
+class BaseRepository:
 
     def save(self):
         db.session.add(self)

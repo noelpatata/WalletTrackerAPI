@@ -24,6 +24,11 @@ Windows:
 .\env\Scripts\Activate.ps1
 ```
 ### Install dependencies
+
+``` bash
+sudo apt install -y pkg-config default-libmysqlclient-dev build-essential
+```
+
 ``` bash
 pip install -r requirements.txt
 ```
@@ -116,7 +121,7 @@ CREATE TABLE Expense (
     price DOUBLE,
     expenseDate DATE,
     category BIGINT,
-    user BIGINT,
+    description TEXT,
     FOREIGN KEY (user) REFERENCES User(id) ON DELETE CASCADE,
     FOREIGN KEY (category) REFERENCES ExpenseCategory(id) ON DELETE CASCADE
 );
