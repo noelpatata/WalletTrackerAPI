@@ -13,6 +13,7 @@ import jwt
 from repositories.UserRepository import User
 from utils.constants import TokenErrors
 from utils.multitenant import create_tenant_user_and_db
+from config import SECRET
 
 
 auth_bp = Blueprint('authentication', __name__)
@@ -97,32 +98,37 @@ def register():
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
+        return jsonify({'success': False, 'message': 'Internal server error'}), 200
     
-    newUserName = data.get('username')
-    if not newUserName or newUserName == "":
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
+    new_username = data.get('username')
+    if not new_username or new_username == "":
+        return jsonify({'success': False, 'message': 'Internal server error'}), 200
     
-    if User.check_exists(newUserName):
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
+    if User.check_exists(new_username):
+        return jsonify({'success': False, 'message': 'Internal server error'}), 200
     
-    privkey = generateKeys.generate_private_key() 
-    privkeystring = generateKeys.generate_private_key_string(privkey)
-    pubkeystring = generateKeys.generate_public_key_string(privkey)
+    private_key = generateKeys.generate_private_key() 
+    private_keystring = generateKeys.generate_private_key_string(private_key)
+    public_keystring = generateKeys.generate_public_key_string(private_key)
     
-    newUser = User(
-        username = newUserName,
-        private_key = privkeystring,
-        public_key = pubkeystring,
+    new_user = User(
+        username = new_username,
+        private_key = private_keystring,
+        public_key = public_keystring,
         client_public_key = ""
     )
+    new_user.save()
 
-    
-    newUser.set_password(data.get('password'))
+    try:
+        db_username, db_password = create_tenant_user_and_db(new_user)
+        new_user.db_username = db_username
+        new_user.db_password = db_password
+        new_user.save()
 
-    create_tenant_user_and_db(newUser)
-    
-    return jsonify({'userId': newUser.id, 'public_key':newUser.public_key}), 200
+    except Exception as db_exc:
+        new_user.delete()
+        raise db_exc
+    return jsonify({'userId': new_user.id, 'public_key':new_user.public_key}), 200
 
 @auth_bp.route("/login/", methods=['POST'])
 def login():
@@ -313,7 +319,7 @@ def encrypt_and_sign_data(func):
                 try:
                     response_data = response.get_json()
 
-                    signature = sign_with_private_key("s0m3r4nd0mt3xt", user.private_key)
+                    signature = sign_with_private_key(SECRET, user.private_key)
                     json_str = json.dumps(response_data, ensure_ascii=False)
                     encrypted_json = encrypt_with_public_key(json_str, user.client_public_key)
                     encrypted_response = jsonify({'signature': signature, 'encrypted_data': encrypted_json})

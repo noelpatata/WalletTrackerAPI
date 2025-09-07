@@ -1,6 +1,6 @@
-from sqlalchemy import desc
+from sqlalchemy import func, desc
 from db import db
-from BaseRepository import BaseRepository
+from repositories.BaseRepository import BaseRepository
 
 class Expense(db.Model, BaseRepository):
     __tablename__ = 'Expense'
@@ -9,6 +9,7 @@ class Expense(db.Model, BaseRepository):
     price = db.Column(db.Float, nullable=False)
     expenseDate = db.Column(db.Date, nullable=False)
     category = db.Column(db.Integer, db.ForeignKey('ExpenseCategory.id'), nullable=False)
+    description = db.Column(db.String(255), nullable=False)
     
     @classmethod
     def getByCategory(cls, category_id):
@@ -18,17 +19,20 @@ class Expense(db.Model, BaseRepository):
         ).all()
     
     @classmethod
-    def getTotalByCategory(cls, category_id):
-        total = db.session.query(db.func.sum(cls.price)).filter(cls.category == category_id).scalar()
+    def getTotalByCategory(cls, category_id, session=None):
+        sess = session or db.session
+        total = sess.query(func.sum(cls.price)).filter(cls.category == category_id).scalar()
         return total or 0.0
-    
+
     @classmethod
-    def deleteAll(cls):
-        cls.query.delete()
-        db.session.commit()
-    
+    def deleteAll(cls, session=None):
+        sess = session or db.session
+        sess.query(cls).delete()
+        sess.commit()
+
     @classmethod
-    def deleteById(cls, expense_id):
-        cls.query.filter(cls.id == expense_id).delete()
-        db.session.commit()
+    def deleteById(cls, expense_id, session=None):
+        sess = session or db.session
+        sess.query(cls).filter(cls.id == expense_id).delete()
+        sess.commit()
         

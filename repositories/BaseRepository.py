@@ -3,9 +3,11 @@ from db import db
 
 class BaseRepository:
 
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
+    def save(self, session=None):
+        if session is None:
+            session = db.session
+        session.add(self)
+        session.commit()
 
     def delete(self):
         db.session.delete(self)

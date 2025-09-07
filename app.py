@@ -1,5 +1,5 @@
 from endpoints.ExpenseEndpoints import expense_bp 
-from endpoints.ExpenseCatogoryEndpoints import expensecategory_bp 
+from endpoints.ExpenseCategoryEndpoints import expensecategory_bp 
 from endpoints.AuthenticationEndpoints import auth_bp
 from flask import Flask
 from db import db

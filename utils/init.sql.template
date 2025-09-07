@@ -1,4 +1,4 @@
-CREATE DATABASE ${MYSQL_DATABASE};
+CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};
 USE ${MYSQL_DATABASE};
 CREATE TABLE User (
   id BIGINT NOT NULL AUTO_INCREMENT,
@@ -8,24 +8,8 @@ CREATE TABLE User (
   private_key LONGTEXT NULL,
   public_key LONGTEXT NULL,
   client_public_key LONGTEXT NULL,
+  db_username TEXT NULL,
+  db_password TEXT NULL,
   PRIMARY KEY (id),
   UNIQUE INDEX username_UNIQUE (username ASC) VISIBLE
-);
-  
-CREATE TABLE ExpenseCategory (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    name TEXT NOT NULL,
-    user BIGINT,
-    sortOrder INT NULL,
-    FOREIGN KEY (user) REFERENCES User(id) ON DELETE CASCADE
-);
-
-CREATE TABLE Expense (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    price DOUBLE,
-    expenseDate DATE,
-    category BIGINT,
-    description TEXT,
-    FOREIGN KEY (user) REFERENCES User(id) ON DELETE CASCADE,
-    FOREIGN KEY (category) REFERENCES ExpenseCategory(id) ON DELETE CASCADE
 );

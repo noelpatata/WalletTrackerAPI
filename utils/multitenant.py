@@ -18,7 +18,7 @@ def construct_db_connection_string(db_username: str, db_password: str, user_id: 
     return f"mysql://{db_username}:{db_password}@{MYSQLHOST}/{user_dbname}"
 
 
-def create_tenant_user_and_db(user):
+def create_tenant_user_and_db(user) -> tuple[str, str]:
     """
     Creates a dedicated DB and DB user for this tenant.
     Updates the user object with db_username and db_password (caller must commit).
@@ -48,9 +48,9 @@ def create_tenant_user_and_db(user):
 
     user.db_username = db_username
     user.db_password = db_password
-    user.save()
-
     initialise_tenant_db(user)
+
+    return db_username, db_password
 
 
 def initialise_tenant_db(user):
@@ -65,19 +65,19 @@ def initialise_tenant_db(user):
         eng = create_engine(uri, pool_pre_ping=True, pool_recycle=3600)
         _engine_cache[user.id] = eng
 
-        from repositories import ExpenseRepository
-        from repositories import ExpenseCategoryRepository
+        from repositories.ExpenseRepository import Expense
+        from repositories.ExpenseCategoryRepository import ExpenseCategory
 
         db.metadata.create_all(
-            bind=eng, tables=[ExpenseRepository.__table__, ExpenseCategoryRepository.__table__]
+            bind=eng, tables=[Expense.__table__, ExpenseCategory.__table__]
         )
 
         return eng
 
 
-    def get_tenant_session(user):
-        """
-        Return a scoped session for the tenant DB.
-        """
-        eng = initialise_tenant_db(user)
-        return scoped_session(sessionmaker(bind=eng))
+def get_tenant_session(user):
+    """
+    Return a scoped session for the tenant DB.
+    """
+    eng = initialise_tenant_db(user)
+    return scoped_session(sessionmaker(bind=eng))

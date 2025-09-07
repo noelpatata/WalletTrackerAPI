@@ -1,4 +1,6 @@
 from flask import Blueprint, jsonify
+from repositories.UserRepository import User
+from utils.multitenant import get_tenant_session
 from repositories.ExpenseCategoryRepository import ExpenseCategory
 from repositories.ExpenseRepository import Expense
 from endpoints.AuthenticationEndpoints import encrypt_and_sign_data
@@ -25,18 +27,25 @@ def get_by_id(userId, decrypted_data):
         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
     
 
-@expensecategory_bp.route('/ExpenseCategory/', methods=['GET']) #query parameter userId
+@expensecategory_bp.route('/ExpenseCategory/', methods=['GET'])
 @encrypt_and_sign_data
 def get_by_user(userId, decrypted_data):
     try:
         if not userId:
             return jsonify({'success': False, 'message':  'User not provided'}), 403
-        categories = ExpenseCategory.getByUser(userId)
+
+        user = User.getById(userId)
+        if not user:
+            raise ValueError("User not found")
+        session = get_tenant_session(user)
+        categories = ExpenseCategory.getAll(session)
         for category in categories:
-            total = Expense.getTotalByCategory(category.id)
+            total = Expense.getTotalByCategory(category.id, session)
             category.setTotal(total) 
         cat_json = [category.serialize() for category in categories]
+        session.remove()
         return jsonify(cat_json)
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
     
@@ -45,17 +54,19 @@ def get_by_user(userId, decrypted_data):
 @encrypt_and_sign_data
 def create_expense_category(userId, decrypted_data):
     try:
-        #data extraction
         data = decrypted_data
         catName = data.get('name')
 
-        #validation
         if not catName or not userId:
             return jsonify({'success': False, 'message': 'Invalid data'}), 403    
-
-        #save data
+        
+        user = User.getById(userId)
+        if not user:
+            raise ValueError("User not found")
+        
+        session = get_tenant_session(user)
         new_category = ExpenseCategory(name=catName, user=userId)
-        new_category.save()
+        new_category.save(session)
         return jsonify(new_category.serialize()), 200
 
     except Exception as e:

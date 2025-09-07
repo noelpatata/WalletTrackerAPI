@@ -67,12 +67,12 @@ export DB_NAME=mydb
 Linux:
 
 ``` bash
-uwsgi --http [ip address]:[port] --master -p [thread number] -w [python file name (without .py extension)]:app
+uwsgi --http [ip address]:[port] --master -p [thread number] -w app:app
 ```
 Windows:
 
 ``` cmd
-waitress-serve --host 127.0.0.1 hello:app
+waitress-serve --host 127.0.0.1 app:app
 ```
 ## Mysql Setup
 ### Pull docker image
@@ -83,48 +83,9 @@ docker pull mysql:8.0
 ### Create docker container
 
 ``` bash
-docker run -d \
-  --name my_mysql \
-  -e MYSQL_ROOT_PASSWORD=rootpassword \
-  -e MYSQL_DATABASE=mydb \
-  -e MYSQL_USER=myuser \
-  -e MYSQL_PASSWORD=mypassword \
-  -p 3306:3306 \
-  mysql:8.0
-```
-### Mysql Database Script
-``` mysql
-CREATE DATABASE WalletTracker;
-USE WalletTracker;
-CREATE TABLE User (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  username VARCHAR(45) NOT NULL,
-  password LONGTEXT NULL,
-  salt LONGTEXT NULL,
-  private_key LONGTEXT NULL,
-  public_key LONGTEXT NULL,
-  client_public_key LONGTEXT NULL,
-  PRIMARY KEY (id),
-  UNIQUE INDEX username_UNIQUE (username ASC) VISIBLE
-);
-  
-CREATE TABLE ExpenseCategory (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    name TEXT NOT NULL,
-    user BIGINT,
-    sortOrder INT NULL,
-    FOREIGN KEY (user) REFERENCES User(id) ON DELETE CASCADE
-);
-
-CREATE TABLE Expense (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    price DOUBLE,
-    expenseDate DATE,
-    category BIGINT,
-    description TEXT,
-    FOREIGN KEY (user) REFERENCES User(id) ON DELETE CASCADE,
-    FOREIGN KEY (category) REFERENCES ExpenseCategory(id) ON DELETE CASCADE
-);
+docker build -t wallet_tracker_mysql . \
+docker run -d  --name mysql -e MYSQL_ROOT_PASSWORD=adminadmin -e MYSQL_DATABASE=wallet_tracker -e MYSQL_USER=noel -e MYSQL_PASSWORD=adminadmin -p 3306:3306  wallet_tracker_mysql \
+docker start wallet_tracker_mysql
 ```
 ---
 
