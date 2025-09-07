@@ -11,7 +11,7 @@ import datetime
 from flask import Blueprint, Response, request, jsonify, make_response, current_app
 import jwt
 from repositories.UserRepository import User
-from constants import TokenErrors
+from utils.constants import TokenErrors
 from utils.multitenant import create_tenant_user_and_db
 
 
