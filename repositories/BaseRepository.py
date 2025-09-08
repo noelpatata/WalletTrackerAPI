@@ -13,7 +13,7 @@ class BaseRepository:
         db.session.delete(self)
         db.session.commit()
         
-    def serialize(self):
+    def toJsonDict(self):
         result = {}
         for column in self.__table__.columns:
             
@@ -22,13 +22,8 @@ class BaseRepository:
                 value = value.isoformat()
             result[column.name] = value
         return result
+    
     def edit(self, **kwargs):
-        """
-        Edit all given attributes of the object.
-
-        Args:
-            **kwargs: Key-value pairs where keys are attribute names and values are new values.
-        """
         for key, value in kwargs.items():
             if hasattr(self, key):
                 if key != "id" and key != "username":
@@ -36,11 +31,11 @@ class BaseRepository:
         self.save()
         
     @classmethod
-    def get_all(cls):
+    def getAll(cls):
         return cls.query.all()
 
     @classmethod
-    def get_by_id(cls, id):
+    def getById(cls, id):
         return cls.query.get(id)
 
     @classmethod
@@ -52,6 +47,6 @@ class BaseRepository:
         cls.session.rollback()
     
     @classmethod
-    def delete_all(cls):
+    def deleteAll(cls):
         cls.query.delete()
         cls.query.session.commit()

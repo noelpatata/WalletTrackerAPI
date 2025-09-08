@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from repositories.ExpenseRepository import Expense
-from endpoints.AuthenticationEndpoints import encrypt_and_sign_data
+from endpoints.middlewares.authentication import encrypt_and_sign_data
 
 expense_bp = Blueprint('expense', __name__)
 

@@ -3,7 +3,7 @@ from repositories.UserRepository import User
 from utils.multitenant import get_tenant_session
 from repositories.ExpenseCategoryRepository import ExpenseCategory
 from repositories.ExpenseRepository import Expense
-from endpoints.AuthenticationEndpoints import encrypt_and_sign_data
+from endpoints.middlewares.authentication import encrypt_and_sign_data
 
 expensecategory_bp = Blueprint('expensecategory', __name__)
 
@@ -22,7 +22,7 @@ def get_by_id(userId, decrypted_data):
             return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
         total = Expense.getTotalByCategory(category.id)
         category.setTotal(total) 
-        return jsonify(category.serialize())
+        return jsonify(category.toJsonDict())
     except Exception as e:
         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
     
@@ -42,7 +42,7 @@ def get_by_user(userId, decrypted_data):
         for category in categories:
             total = Expense.getTotalByCategory(category.id, session)
             category.setTotal(total) 
-        cat_json = [category.serialize() for category in categories]
+        cat_json = [category.getColumns() for category in categories]
         session.remove()
         return jsonify(cat_json)
 
@@ -67,7 +67,7 @@ def create_expense_category(userId, decrypted_data):
         session = get_tenant_session(user)
         new_category = ExpenseCategory(name=catName, user=userId)
         new_category.save(session)
-        return jsonify(new_category.serialize()), 200
+        return jsonify(new_category.toJsonDict()), 200
 
     except Exception as e:
         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403

@@ -2,6 +2,8 @@ flask
 flask_sqlalchemy
 PyJWT
 mysqlclient
-uwsgi
 cryptography
-#waitress==3.0.2
+
+waitress; sys_platform == "win32"
+uwsgi; sys_platform != "win32"
+

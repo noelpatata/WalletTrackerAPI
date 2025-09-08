@@ -13,8 +13,8 @@ class ExpenseCategory(db.Model, BaseRepository):
     def setTotal(self, total):
         self.total = total
     
-    def serialize(self):
-        result = super().serialize()
+    def toJsonDict(self):
+        result = super().toJsonDict()
         
         result['total'] = self.total
         
