@@ -1,12 +1,16 @@
+import os
+from flask import Flask
 from endpoints.ExpenseEndpoints import expense_bp 
 from endpoints.ExpenseCategoryEndpoints import expensecategory_bp 
 from endpoints.AuthenticationEndpoints import auth_bp
-from flask import Flask
 from db import db
 from config import MYSQLUSERNAME, MYSQLPASSWORD, MYSQLHOST, MYSQLDBNAME
+from utils.generateKeys import generate_keys_file
 
 app = Flask(__name__)
 
+if not (os.path.exists("private_key.pem") and os.path.exists("public_key.pem")):
+    generate_keys_file()
 app.config['PRIVATE_KEY'] = open('private_key.pem', 'r').read()
 app.config['PUBLIC_KEY'] = open('public_key.pem', 'r').read()
 

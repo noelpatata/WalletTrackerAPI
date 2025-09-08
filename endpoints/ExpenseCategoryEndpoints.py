@@ -7,7 +7,7 @@ from endpoints.AuthenticationEndpoints import encrypt_and_sign_data
 
 expensecategory_bp = Blueprint('expensecategory', __name__)
 
-@expensecategory_bp.route('/ExpenseCategory/Id/', methods=['POST']) #query parameter userId
+@expensecategory_bp.route('/ExpenseCategory/Id/', methods=['POST'])
 @encrypt_and_sign_data
 def get_by_id(userId, decrypted_data):
     try:

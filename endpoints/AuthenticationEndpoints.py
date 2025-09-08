@@ -32,7 +32,7 @@ def token_required(f):
         if not auth_header.startswith("Bearer "):
             return jsonify({'error': 'Invalid Authorization header format. Use Bearer <token>'}), 403
 
-        cipheredTextb64 = cipher_header
+        ciphered_text_b64 = cipher_header
         token = auth_header.split(" ")[1]
         
         if not token:
@@ -43,11 +43,11 @@ def token_required(f):
                 current_app.config['PUBLIC_KEY'],
                 algorithms=['RS256']
             )
-            userId_from_payload = payload.get('user')
-            if not userId_from_payload:
+            user_id_from_payload = payload.get('user')
+            if not user_id_from_payload:
                 return jsonify({'error': 'Authentication error'}), 403
             
-            user = User.get_by_id(userId_from_payload)
+            user = User.get_by_id(user_id_from_payload)
             if not user:
                 return jsonify({'error': 'Authentication error'}), 403
             public_key_pem = base64.b64decode(user.client_public_key)
@@ -60,7 +60,7 @@ def token_required(f):
             )
 
             try:
-                signature_bytes = base64.b64decode(cipheredTextb64)
+                signature_bytes = base64.b64decode(ciphered_text_b64)
             except Exception as e:
                 return jsonify({'success': False, 'message': 'Invalid data'}), 403
             except Exception as e:
@@ -83,7 +83,7 @@ def token_required(f):
                 decrypted_data = ''
                 
             
-            kwargs['userId'] = userId_from_payload
+            kwargs['userId'] = user_id_from_payload
             kwargs['decrypted_data'] = decrypted_data
         except jwt.ExpiredSignatureError:
             return jsonify({'error': TokenErrors.expired}), 403
@@ -133,7 +133,7 @@ def register():
 @auth_bp.route("/login/", methods=['POST'])
 def login():
     try:
-        auth = request.get_json() # get basic auth credentials
+        auth = request.get_json()
         if auth:
             user = User.query.filter(User.username == auth.get('username')).first()
             
@@ -163,9 +163,9 @@ def autologin():
             return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
         user_id = data.get('userId')
-        ciphered_textbs64 = data.get('ciphered')
+        ciphered_text_bs64 = data.get('ciphered')
 
-        if not user_id or not ciphered_textbs64:
+        if not user_id or not ciphered_text_bs64:
             return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
         user = User.query.filter_by(id=user_id).first()
@@ -173,18 +173,15 @@ def autologin():
             return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
         public_key_pem = base64.b64decode(user.client_public_key)
-          # Ensure no extra whitespace
         if not public_key_pem:
             return jsonify({'success': False, 'message': 'Invalid data'}), 403
 
-            # Deserialize the private key
         public_key = serialization.load_pem_public_key(
             public_key_pem
         )
 
-            # Decode the Base64-encoded ciphered text
         try:
-            signature_bytes = base64.b64decode(ciphered_textbs64)
+            signature_bytes = base64.b64decode(ciphered_text_bs64)
         except Exception as e:
             return jsonify({'success': False, 'message': 'Invalid data5'}), 403
         except Exception as e:

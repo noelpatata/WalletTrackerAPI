@@ -41,25 +41,6 @@ In order to encrypt the tokens with asymetric cryptography, you need to generate
 ``` bash
 python generateKeys.pem
 ```
-### Setup env variables
-The config.py defines the variables regarding secrets. We need to create them.
-
-Windows:
-
-``` cmd
-setx DB_HOST 127.0.0.1
-setx DB_USER myuser
-setx DB_PASSWORD mypassword
-setx DB_NAME mydb
-```
-Linux:
-
-``` bash
-export DB_HOST=127.0.0.1
-export DB_USER=myuser
-export DB_PASSWORD=mypassword
-export DB_NAME=mydb
-```
 ---
 
 ## Development
