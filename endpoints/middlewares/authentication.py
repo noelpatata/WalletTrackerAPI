@@ -96,7 +96,7 @@ def encrypt_and_sign_data(func):
             if not user:
                 return jsonify({'success': False, 'message': 'User not found'}), 403
             
-            response = func(userId, *args, **kwargs) #get response from original request
+            response = func(userId, *args, **kwargs)
 
             status_code = 200
             if isinstance(response, tuple):
@@ -105,7 +105,6 @@ def encrypt_and_sign_data(func):
             if not isinstance(response, Response):  
                 response = jsonify(response)
 
-            # Handle encryption & signing for both GET & POST methods
             if request.method in ['GET', 'POST'] and status_code in [200, 201]:
                 try:
                     response_data = response.get_json()
@@ -115,8 +114,8 @@ def encrypt_and_sign_data(func):
                     encrypted_json = encrypt_with_public_key(json_str, user.client_public_key)
                     encrypted_response = jsonify({'signature': signature, 'encrypted_data': encrypted_json})
                     encrypted_response.status_code = status_code
-                    return encrypted_response # this is the actual response from the server    
-                except Exception as ex:
+                    return encrypted_response 
+                except Exception as e:
                     return jsonify({'success': False, 'message': f'Invalid data'}), 403        
                 
                     

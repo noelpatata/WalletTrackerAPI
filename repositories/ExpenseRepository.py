@@ -1,38 +1,37 @@
 from sqlalchemy import func, desc
 from db import db
-from repositories.BaseRepository import BaseRepository
+from models.Expense import Expense
 
-class Expense(db.Model, BaseRepository):
-    __tablename__ = 'Expense'
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    price = db.Column(db.Float, nullable=False)
-    expenseDate = db.Column(db.Date, nullable=False)
-    category = db.Column(db.Integer, db.ForeignKey('ExpenseCategory.id'), nullable=False)
-    description = db.Column(db.String(255), nullable=False)
+class ExpenseRepository:
     
-    @classmethod
-    def getByCategory(cls, category_id):
-        return cls.query.filter(cls.category == category_id).order_by(
-            desc(cls.expenseDate),
-            desc(cls.id)
-        ).all()
-    
-    @classmethod
-    def getTotalByCategory(cls, category_id, session=None):
+    @staticmethod
+    def get_by_category(category_id, session=None):
         sess = session or db.session
-        total = sess.query(func.sum(cls.price)).filter(cls.category == category_id).scalar()
+        return (
+            sess.query(Expense)
+            .filter(Expense.category == category_id)
+            .order_by(desc(Expense.expenseDate), desc(Expense.id))
+            .all()
+        )
+
+    @staticmethod
+    def get_total_by_category(category_id, session=None):
+        sess = session or db.session
+        total = (
+            sess.query(func.sum(Expense.price))
+            .filter(Expense.category == category_id)
+            .scalar()
+        )
         return total or 0.0
 
-    @classmethod
-    def deleteAll(cls, session=None):
+    @staticmethod
+    def delete_all(session=None):
         sess = session or db.session
-        sess.query(cls).delete()
+        sess.query(Expense).delete()
         sess.commit()
 
-    @classmethod
-    def deleteById(cls, expense_id, session=None):
+    @staticmethod
+    def delete_by_id(expense_id, session=None):
         sess = session or db.session
-        sess.query(cls).filter(cls.id == expense_id).delete()
+        sess.query(Expense).filter(Expense.id == expense_id).delete()
         sess.commit()
-        

@@ -13,7 +13,7 @@ class BaseRepository:
         db.session.delete(self)
         db.session.commit()
         
-    def toJsonDict(self):
+    def to_json_dict(self):
         result = {}
         for column in self.__table__.columns:
             
@@ -31,11 +31,11 @@ class BaseRepository:
         self.save()
         
     @classmethod
-    def getAll(cls):
+    def get_all(cls):
         return cls.query.all()
 
     @classmethod
-    def getById(cls, id):
+    def get_by_id(cls, id):
         return cls.query.get(id)
 
     @classmethod
@@ -47,6 +47,6 @@ class BaseRepository:
         cls.session.rollback()
     
     @classmethod
-    def deleteAll(cls):
+    def delete_all(cls):
         cls.query.delete()
         cls.query.session.commit()

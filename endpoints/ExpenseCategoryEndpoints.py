@@ -1,11 +1,11 @@
 from flask import Blueprint, jsonify
-from repositories.UserRepository import User
 from utils.multitenant import get_tenant_session
-from repositories.ExpenseCategoryRepository import ExpenseCategory
-from repositories.ExpenseRepository import Expense
 from endpoints.middlewares.authentication import encrypt_and_sign_data
 from utils.responseMaker import make_response
 from utils.constants import Messages, AuthMessages
+from repositories.ExpenseCategoryRepository import ExpenseCategoryRepository
+from repositories.UserRepository import UserRepository
+from models.ExpenseCategory import ExpenseCategory
 
 
 expensecategory_bp = Blueprint('expensecategory', __name__)
@@ -22,14 +22,17 @@ def get_by_id(userId, decrypted_data):
         if not catId:
             return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
         
-        category = ExpenseCategory.getById(catId)
-        if not category:
+        user = UserRepository.get_by_id(userId)
+        if not user:
             return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
         
-        total = Expense.getTotalByCategory(category.id)
-        category.setTotal(total)
+        session = get_tenant_session(user)
+        category = ExpenseCategoryRepository.get_by_id(catId, session)
+        if not category:
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
         return make_response(category, True), 200
+    
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
@@ -41,24 +44,21 @@ def get_all(userId, decrypted_data):
         if not userId:
             return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
-        user = User.getById(userId)
+        user = UserRepository.get_by_id(userId)
         if not user:
             return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
         
         session = get_tenant_session(user)
-        categories = ExpenseCategory.getAll(session)
-        for category in categories:
-            total = Expense.getTotalByCategory(category.id, session)
-            category.setTotal(total) 
-        cat_json = [category.getColumns() for category in categories]
+        categories = ExpenseCategoryRepository.get_all(session)
         session.remove()
-        return jsonify(cat_json)
+        
+        return make_response(categories, True), 200
 
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
 
-@expensecategory_bp.route('/ExpenseCategory/create/', methods=['POST'])  # query parameter userId
+@expensecategory_bp.route('/ExpenseCategory/', methods=['POST'])
 @encrypt_and_sign_data
 def create_expense_category(userId, decrypted_data):
     try:
@@ -66,50 +66,67 @@ def create_expense_category(userId, decrypted_data):
         catName = data.get('name')
 
         if not catName or not userId:
-            return jsonify({'success': False, 'message': 'Invalid data'}), 403    
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
         
-        user = User.getById(userId)
+        user = UserRepository.get_by_id(userId)
         if not user:
-            raise ValueError("User not found")
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
         
         session = get_tenant_session(user)
-        new_category = ExpenseCategory(name=catName, user=userId)
+        new_category = ExpenseCategory(name=catName)
         new_category.save(session)
-        return jsonify(new_category.toJsonDict()), 200
+
+        session.remove()
+
+        return make_response(new_category, True), 200
 
     except Exception as e:
-        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
-@expensecategory_bp.route('/ExpenseCategory/delete/', methods=['POST'])
+        return make_response(None, False, Messages.INTERNAL_ERROR), 500
+    
+@expensecategory_bp.route('/ExpenseCategory/', methods=['DELETE'])
 @encrypt_and_sign_data
 def delete_by_id(userId, decrypted_data):
     try:
         data = decrypted_data
         if not data:
-            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
         catId = data.get('catId')
 
         if not catId:
-            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
-        ExpenseCategory.deleteById(catId)
-        return jsonify({'success': True}), 200
+        user = UserRepository.get_by_id(userId)
+        if not user:
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        session = get_tenant_session(user)
+
+        ExpenseCategoryRepository.delete_by_id(catId, session)
+        return make_response(None, True), 200
 
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 403
+        return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
-@expensecategory_bp.route('/ExpenseCategory/editName/', methods=['POST'])
+@expensecategory_bp.route('/ExpenseCategory/editName/', methods=['PATCH'])
 @encrypt_and_sign_data
 def edit_name(userId, decrypted_data):
     try:
         data = decrypted_data
 
         if not data:
-            return jsonify({'success': False, 'message': 'Category not provided'}), 403    
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
         
-        cat = ExpenseCategory.getById(data.get('id'))
+        user = UserRepository.get_by_id(userId)
+        if not user:
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        session = get_tenant_session(user)
+        
+        cat = ExpenseCategoryRepository.get_by_id(data.get('id'), session)
         if not cat:
-            return jsonify({'success': False, 'message': 'Category not provided'}), 403    
-        cat.editName(data.get('name'))
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        cat.setName(data.get('name'))
         return jsonify({'success': True}), 200
 
     except Exception as e:

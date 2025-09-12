@@ -1,42 +1,48 @@
 from sqlalchemy import func
 from db import db
-from repositories.BaseRepository import BaseRepository
+from models.ExpenseCategory import ExpenseCategory
+from models.Expense import Expense
 
-class ExpenseCategory(db.Model, BaseRepository):
-    __tablename__ = 'ExpenseCategory'
+class ExpenseCategoryRepository:
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(255), nullable=False)
-    sortOrder = db.Column(db.Integer, nullable=True)
-    total = 0
-    
-    def setTotal(self, total):
-        self.total = total
-    
-    def toJsonDict(self):
-        result = super().toJsonDict()
-        
-        result['total'] = self.total
-        
-        return result
-    
-    def editName(self, new_name):
-        if hasattr(self, 'name'):
-            self.name = new_name
-            self.save()
-    
-    @classmethod
-    def getById(cls, expense_id, session=None):
+    @staticmethod
+    def get_by_id(category_id, session=None):
         sess = session or db.session
-        row = sess.query(cls).filter(cls.id == expense_id).first()
-        return row
 
-    @classmethod
-    def getAll(cls, session=None):
+        category = sess.query(ExpenseCategory).get(category_id)
+        if not category:
+            return None
+
+        total = (
+            sess.query(func.sum(Expense.price))
+            .filter(Expense.category == category.id)
+            .scalar()
+        ) or 0.0
+
+        category.setTotal(total)
+        return category
+        
+    @staticmethod
+    def get_all(session=None):
         sess = session or db.session
-        rows = sess.query(cls).order_by(
-            func.coalesce(cls.sortOrder, 0),
-            cls.sortOrder.asc(),
-            cls.id
+        categories = sess.query(ExpenseCategory).order_by(
+            ExpenseCategory.sortOrder.asc().nullsfirst(),
+            ExpenseCategory.id
         ).all()
-        return rows
+
+        for category in categories:
+            total = (
+                sess.query(func.sum(Expense.price))
+                .filter(Expense.category == category.id)
+                .scalar()
+            ) or 0.0
+            category.setTotal(total)
+
+        return categories
+
+    
+    @staticmethod
+    def delete_by_id(category_id, session=None):
+        sess = session or db.session
+        sess.query(ExpenseCategory).filter(ExpenseCategory.id == category_id).delete()
+        sess.commit()

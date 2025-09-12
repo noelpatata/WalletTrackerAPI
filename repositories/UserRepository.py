@@ -1,45 +1,44 @@
+import os, hashlib, binascii
 from db import db
-import hashlib
-import os
-import binascii
-from repositories.BaseRepository import BaseRepository
+from models.User import User
 
-class User(db.Model, BaseRepository):
-    __tablename__ = 'User'
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String, nullable=False, unique=True)
-    password = db.Column(db.String, nullable=True)
-    salt = db.Column(db.String, nullable=False)
-    private_key = db.Column(db.String, nullable=False)
-    public_key = db.Column(db.String, nullable=False)
-    client_public_key = db.Column(db.String, nullable=False)
-    db_username = db.Column(db.String(255), nullable=False)
-    db_password = db.Column(db.String(255), nullable=False)
+class UserRepository:
     
-    @classmethod
-    def check_exists(cls, username):
-        userFromQuery = cls.query.filter(cls.username == username).first()
-        return userFromQuery != None
+    @staticmethod
+    def get_by_id(user_id):
+        return User.query.get(user_id)
 
-    def set_password(self, password):
+    @staticmethod
+    def get_by_username(username):
+        return User.query.filter_by(username=username).first()
+
+    @staticmethod
+    def exists(username) -> bool:
+        return db.session.query(User.id).filter_by(username=username).first() is not None
+
+    @staticmethod
+    def create(username, password, **extra_fields):
+        """Factory: creates user with hashed password."""
         salt = os.urandom(32)
-        self.salt = binascii.hexlify(salt).decode('utf-8')
         hashed_password = hashlib.pbkdf2_hmac(
-            'sha256', password.encode('utf-8'), salt, 100000
+            "sha256", password.encode("utf-8"), salt, 100000
         )
-        self.password = binascii.hexlify(hashed_password).decode('utf-8')
 
-    def CorrectPassword(self, password):
-        """Verifies the provided password against the stored hash."""
-        salt = binascii.unhexlify(self.salt.encode('utf-8'))
-        hashed_password = hashlib.pbkdf2_hmac(
-            'sha256', password.encode('utf-8'), salt, 100000
+        user = User(
+            username=username,
+            password=binascii.hexlify(hashed_password).decode("utf-8"),
+            salt=binascii.hexlify(salt).decode("utf-8"),
+            **extra_fields
         )
-        return self.password == binascii.hexlify(hashed_password).decode('utf-8')
-    
-    def IsCorrectPassword(self, hashed_password):
-        return self.password == hashed_password
-            
-        
-    
+        db.session.add(user)
+        db.session.commit()
+        return user
+
+    @staticmethod
+    def check_password(user: User, password: str) -> bool:
+        """Verify password against stored hash."""
+        salt = binascii.unhexlify(user.salt.encode("utf-8"))
+        hashed_password = hashlib.pbkdf2_hmac(
+            "sha256", password.encode("utf-8"), salt, 100000
+        )
+        return user.password == binascii.hexlify(hashed_password).decode("utf-8")

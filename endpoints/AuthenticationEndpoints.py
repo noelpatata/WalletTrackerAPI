@@ -1,15 +1,13 @@
 import datetime
 import base64
 import jwt
-from flask import Blueprint, request, jsonify, current_app
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import serialization, hashes
-from config import SECRET
+from flask import Blueprint, request, current_app
 from utils.cryptography import generate_private_key, generate_private_key_string, generate_public_key_string, verify_signature
 from utils.constants import  Messages, AuthMessages, UserMessages
 from utils.multitenant import create_tenant_user_and_db
 from utils.responseMaker import make_response
-from repositories.UserRepository import User
+from repositories.UserRepository import UserRepository
+from models.User import User
 
 auth_bp = Blueprint('authentication', __name__)
 
@@ -18,11 +16,11 @@ def login():
     try:
         auth = request.get_json()
         if auth:
-            user = User.query.filter(User.username == auth.get('username')).first()
+            user = UserRepository.get_by_username(auth.get('username'))
             
             if user is None:
                 return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
-            if(user.CorrectPassword(auth.get('password'))):
+            if(UserRepository.check_password(user, auth.get('password'))):
                 payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
                 token = jwt.encode(
                     payload,
@@ -47,7 +45,7 @@ def register():
     if not new_username or new_username == "":
         return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
     
-    if User.check_exists(new_username):
+    if UserRepository.check_exists(new_username):
         return make_response(None, False, AuthMessages.ALREADY_EXISTS), 200
     
     private_key = generate_private_key() 
@@ -75,7 +73,7 @@ def register():
     return make_response(new_user, True, UserMessages.CREATED_SUCCESSFULLY)
 
 @auth_bp.route("/autoLogin/", methods=['POST'])
-def autologin():
+def auto_login():
     try:
         data = request.get_json()
         if not data or 'userId' not in data or 'ciphered' not in data:
@@ -114,7 +112,7 @@ def autologin():
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
 
-@auth_bp.route("/getUserServerPubKey/", methods=['POST'])
+@auth_bp.route("/getUserServerPubKey/", methods=['GET'])
 def get_user_pub_key():
     try:
         data = request.get_json()
