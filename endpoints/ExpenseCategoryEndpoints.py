@@ -4,39 +4,47 @@ from utils.multitenant import get_tenant_session
 from repositories.ExpenseCategoryRepository import ExpenseCategory
 from repositories.ExpenseRepository import Expense
 from endpoints.middlewares.authentication import encrypt_and_sign_data
+from utils.responseMaker import make_response
+from utils.constants import Messages, AuthMessages
+
 
 expensecategory_bp = Blueprint('expensecategory', __name__)
 
-@expensecategory_bp.route('/ExpenseCategory/Id/', methods=['POST'])
+@expensecategory_bp.route('/ExpenseCategory/', methods=['GET'])
 @encrypt_and_sign_data
 def get_by_id(userId, decrypted_data):
     try:
         data = decrypted_data
         if not data:
-            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
         catId = data.get('catId')
         if not catId:
-            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
         category = ExpenseCategory.getById(catId)
         if not category:
-            return jsonify({'success': False, 'message': 'CategoryId not provided'}), 403    
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
         total = Expense.getTotalByCategory(category.id)
-        category.setTotal(total) 
-        return jsonify(category.toJsonDict())
+        category.setTotal(total)
+
+        return make_response(category, True), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
+        return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
 
-@expensecategory_bp.route('/ExpenseCategory/', methods=['GET'])
+@expensecategory_bp.route('/ExpenseCategory/all', methods=['GET'])
 @encrypt_and_sign_data
-def get_by_user(userId, decrypted_data):
+def get_all(userId, decrypted_data):
     try:
         if not userId:
-            return jsonify({'success': False, 'message':  'User not provided'}), 403
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
         user = User.getById(userId)
         if not user:
-            raise ValueError("User not found")
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
         session = get_tenant_session(user)
         categories = ExpenseCategory.getAll(session)
         for category in categories:
@@ -47,7 +55,7 @@ def get_by_user(userId, decrypted_data):
         return jsonify(cat_json)
 
     except Exception as e:
-        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 403
+        return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
 
 @expensecategory_bp.route('/ExpenseCategory/create/', methods=['POST'])  # query parameter userId

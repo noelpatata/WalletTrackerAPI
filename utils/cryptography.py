@@ -6,34 +6,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
-
-def decrypt_with_private_key(encrypted_data, private_key_str):
-    try:
-        private_key = serialization.load_pem_private_key(
-            base64.b64decode(private_key_str), password=None, backend=default_backend()
-        )
-
-        encrypted_aes_key = base64.b64decode(encrypted_data["encrypted_aes_key"])
-        iv = base64.b64decode(encrypted_data["iv"])
-        ciphertext = base64.b64decode(encrypted_data["ciphertext"])
-        tag = base64.b64decode(encrypted_data["tag"])
-
-        aes_key = private_key.decrypt(
-            encrypted_aes_key,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-
-        cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv, tag), backend=default_backend())
-        decryptor = cipher.decryptor()
-        decrypted_data = decryptor.update(ciphertext) + decryptor.finalize()
-
-        return json.loads(decrypted_data.decode())
-    except Exception as e:
-        return str(e)
+from config import SECRET
 
 def generate_private_key():
     private_key = rsa.generate_private_key(
@@ -86,17 +59,33 @@ def generate_keys_file():
             )
         )
 
-def sign_with_private_key(data, private_key_str):
-    private_key = serialization.load_pem_private_key(base64.b64decode(private_key_str), password=None, backend=default_backend())
-    signature = private_key.sign(
-        data.encode(),
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=32
-        ),
-        hashes.SHA256()
-    )
-    return base64.b64encode(signature).decode()
+def decrypt_with_private_key(encrypted_data, private_key_str):
+    try:
+        private_key = serialization.load_pem_private_key(
+            base64.b64decode(private_key_str), password=None, backend=default_backend()
+        )
+
+        encrypted_aes_key = base64.b64decode(encrypted_data["encrypted_aes_key"])
+        iv = base64.b64decode(encrypted_data["iv"])
+        ciphertext = base64.b64decode(encrypted_data["ciphertext"])
+        tag = base64.b64decode(encrypted_data["tag"])
+
+        aes_key = private_key.decrypt(
+            encrypted_aes_key,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+
+        cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv, tag), backend=default_backend())
+        decryptor = cipher.decryptor()
+        decrypted_data = decryptor.update(ciphertext) + decryptor.finalize()
+
+        return json.loads(decrypted_data.decode())
+    except Exception as e:
+        return str(e)
 
 def encrypt_with_public_key(data, public_key_str):
     decoded_pem = base64.b64decode(public_key_str).decode()
@@ -125,3 +114,37 @@ def encrypt_with_public_key(data, public_key_str):
         "ciphertext": base64.b64encode(ciphertext).decode(),
         "tag": base64.b64encode(encryptor.tag).decode()
     }
+    
+def sign(data, private_key_str):
+    private_key = serialization.load_pem_private_key(base64.b64decode(private_key_str), password=None, backend=default_backend())
+    signature = private_key.sign(
+        data.encode(),
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=32
+        ),
+        hashes.SHA256()
+    )
+    return base64.b64encode(signature).decode()
+
+def verify_signature(public_key_pem, ciphered_text_bs64):
+
+    
+    try:
+        public_key = serialization.load_pem_public_key(
+            public_key_pem
+        )
+        signature_bytes = base64.b64decode(ciphered_text_bs64)
+        public_key.verify(
+            signature_bytes,
+            SECRET.encode("utf-8"),
+            padding.PSS(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+    except Exception as e:
+        return False
+            
+    

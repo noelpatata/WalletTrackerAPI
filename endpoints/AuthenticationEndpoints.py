@@ -1,16 +1,12 @@
-import os
 import datetime
 import base64
-import json
 import jwt
-from flask import Blueprint, Response, request, jsonify, current_app
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from flask import Blueprint, request, jsonify, current_app
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.backends import default_backend
 from config import SECRET
-from utils.generateKeys import generate_private_key, generate_private_key_string, generate_public_key_string
-from utils.constants import  Messages, AuthMessages, TokenMessages, UserMessages
+from utils.cryptography import generate_private_key, generate_private_key_string, generate_public_key_string, verify_signature
+from utils.constants import  Messages, AuthMessages, UserMessages
 from utils.multitenant import create_tenant_user_and_db
 from utils.responseMaker import make_response
 from repositories.UserRepository import User
@@ -73,7 +69,7 @@ def register():
         new_user.db_password = db_password
         new_user.save()
 
-    except Exception as db_exc:
+    except Exception as e:
         new_user.delete()
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     return make_response(new_user, True, UserMessages.CREATED_SUCCESSFULLY)
@@ -86,9 +82,9 @@ def autologin():
             return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
         user_id = data.get('userId')
-        ciphered_textbs64 = data.get('ciphered')
+        ciphered_text_bs64 = data.get('ciphered')
 
-        if not user_id or not ciphered_textbs64:
+        if not user_id or not ciphered_text_bs64:
             return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
         user = User.query.filter_by(id=user_id).first()
@@ -100,28 +96,13 @@ def autologin():
         if not public_key_pem:
             return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
-        public_key = serialization.load_pem_public_key(
-            public_key_pem
-        )
-
-        try:
-            signature_bytes = base64.b64decode(ciphered_textbs64)
-        except Exception as e:
+        verified = verify_signature(public_key_pem, ciphered_text_bs64)
+        if(not verified):
             return make_response(None, False, AuthMessages.INVALID_HEADERS), 415
-            
-        public_key.verify(
-            signature_bytes,
-            SECRET.encode("utf-8"),
-            padding.PSS(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256()
-        )
 
         payload = {
             'user': user.id,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+            'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
         }
         token = jwt.encode(
             payload,
@@ -135,55 +116,65 @@ def autologin():
 
 @auth_bp.route("/getUserServerPubKey/", methods=['POST'])
 def get_user_pub_key():
-    
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    if not data:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
+        if not data:
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
-    
-    username = data.get('username')
-    password = data.get('password')
+        username = data.get('username')
+        password = data.get('password')
 
-    if not username or username == "":
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
-    if not password or password == "":
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
+        if not username or username == "":
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        if not password or password == "":
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        user = User.query.filter(User.username == username).first()
+        if not user:
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        if(not user.CorrectPassword(password)):
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        return make_response({'userId': user.id, 'publicKey':user.public_key}, True, AuthMessages.FETCHED_SERVER_PUB_KEY), 200
+    except Exception as e:
+        return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
-    user = User.query.filter(User.username == username).first()
-    if not user:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
-    if(not user.CorrectPassword(password)):
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
-    
-    return jsonify({'userId': user.id, 'publicKey':user.public_key}), 200
 
 @auth_bp.route("/setUserClientPubKey/", methods=['POST'])
 def set_user_pub_key():
-    
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    if not data:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
+        if not data:
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
-    pub_key_b64 = data.get('publicKey')
-    if not pub_key_b64:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
+        pub_key_b64 = data.get('publicKey')
+        if not pub_key_b64:
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or username == "":
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        if not password or password == "":
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        user = User.query.filter(User.username == username).first()
+        if not user:
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        if(not user.CorrectPassword(password)):
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        user.client_public_key = pub_key_b64
+        user.save()
+        
+        return make_response(None, True, AuthMessages.ASSIGNED_SERVER_CLIENT_KEY), 200
+    except Exception as e:
+        return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
-    username = data.get('username')
-    password = data.get('password')
-    if not username or username == "":
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
-    if not password or password == "":
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
-    
-    user = User.query.filter(User.username == username).first()
-    if not user:
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
-    if(not user.CorrectPassword(password)):
-        return jsonify({'success': False, 'message': 'Invalid data'}), 403
-    user.client_public_key = pub_key_b64
-    user.save()
-    return jsonify({'success': True, 'message':'Public key sent successfully'}), 200
     
