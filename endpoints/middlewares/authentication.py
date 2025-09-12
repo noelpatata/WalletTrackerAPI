@@ -6,9 +6,10 @@ from flask import Response, request, current_app, jsonify
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
 from config import SECRET
+from utils.multitenant import get_tenant_session
 from utils.constants import AuthMessages, TokenMessages
 from utils.responseMaker import make_response
-from utils.cryptography import decrypt_with_private_key, sign_with_private_key, encrypt_with_public_key
+from utils.cryptography import decrypt_with_private_key, sign, encrypt_with_public_key
 from repositories.UserRepository import User
 
 def token_required(f):
@@ -74,8 +75,10 @@ def token_required(f):
             else: 
                 decrypted_data = ''
                 
-            
+            tenant_session = get_tenant_session(user)
+
             kwargs['userId'] = userId_from_payload
+            kwargs['session'] = tenant_session
             kwargs['decrypted_data'] = decrypted_data
 
         except jwt.ExpiredSignatureError:
@@ -96,7 +99,8 @@ def encrypt_and_sign_data(func):
             if not user:
                 return jsonify({'success': False, 'message': 'User not found'}), 403
             
-            response = func(userId, *args, **kwargs)
+            session = kwargs.get('session')
+            response = func(userId, session=session, *args, **kwargs)
 
             status_code = 200
             if isinstance(response, tuple):
@@ -109,7 +113,7 @@ def encrypt_and_sign_data(func):
                 try:
                     response_data = response.get_json()
 
-                    signature = sign_with_private_key(SECRET, user.private_key)
+                    signature = sign(SECRET, user.private_key)
                     json_str = json.dumps(response_data, ensure_ascii=False)
                     encrypted_json = encrypt_with_public_key(json_str, user.client_public_key)
                     encrypted_response = jsonify({'signature': signature, 'encrypted_data': encrypted_json})

@@ -1,25 +1,31 @@
 from flask import Blueprint, jsonify
-from repositories.ExpenseRepository import Expense
+from repositories.ExpenseRepository import ExpenseRepository
+from repositories.UserRepository import UserRepository
 from endpoints.middlewares.authentication import encrypt_and_sign_data
+from utils.responseMaker import make_response
+from utils.constants import AuthMessages, ExpenseMessages
+from utils.multitenant import get_tenant_session
 
 expense_bp = Blueprint('expense', __name__)
 
-@expense_bp.route('/Expense/Id', methods=['POST']) #query parameter userId, catId
+@expense_bp.route('/Expense', methods=['GET'])
 @encrypt_and_sign_data
-def get_by_id(userId, decrypted_data):
+def get_by_id(userId, session, decrypted_data):
     data = decrypted_data
     if not data:
-        return jsonify({'error': 'Expense not provided'}), 403
+        return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+    
     expenseId = data.get('expenseId')
     if not expenseId:
-        return jsonify({'error': 'Expense not provided'}), 403
-    expense = Expense.get_by_id(expenseId)
-    if not expense:
-        return jsonify({'success': False, 'message': 'Expense not provided'}), 403    
-    expense_json = expense.serialize()
-    return jsonify(expense_json)
+        return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
-@expense_bp.route('/Expense/CatId/', methods=['POST']) #query parameter userId, catId
+    expense = ExpenseRepository.get_by_id(expenseId, session)
+    if not expense:
+        return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+    
+    return make_response(expense, True, ExpenseMessages.FETCHED)
+
+@expense_bp.route('/Expense/catId/', methods=['GET'])
 @encrypt_and_sign_data
 def get_by_category(userId, decrypted_data):
     data = decrypted_data
@@ -28,7 +34,7 @@ def get_by_category(userId, decrypted_data):
     catId = data.get('catId')
     if not catId:
         return jsonify({'error': 'Category not provided'}), 403
-    expenses = Expense.getByCategory(catId)  
+    expenses = ExpenseRepository.get_by_category(catId)  
     expenses_json = [expense.serialize() for expense in expenses]
     return jsonify(expenses_json)
 

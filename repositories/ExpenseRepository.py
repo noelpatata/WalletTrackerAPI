@@ -5,6 +5,12 @@ from models.Expense import Expense
 class ExpenseRepository:
     
     @staticmethod
+    def get_by_id(expense_id, session=None):
+        sess = session or db.session
+        fetched_expense = sess.query(Expense).get(expense_id)
+        return fetched_expense
+    
+    @staticmethod
     def get_by_category(category_id, session=None):
         sess = session or db.session
         return (

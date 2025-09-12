@@ -26,7 +26,7 @@ def login():
                     payload,
                     current_app.config['PRIVATE_KEY'],
                     algorithm='RS256')
-                return make_response({'token': token}, True, AuthMessages.LOGGED_IN_SUCCESSFULLY), 200
+                return make_response({'token': token}, True, AuthMessages.LOGGED_IN), 200
             else:
                 return make_response(None, False, UserMessages.USER_NOT_FOUND), 404
 
@@ -70,7 +70,7 @@ def register():
     except Exception as e:
         new_user.delete()
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
-    return make_response(new_user, True, UserMessages.CREATED_SUCCESSFULLY)
+    return make_response(new_user, True, UserMessages.CREATED)
 
 @auth_bp.route("/autoLogin/", methods=['POST'])
 def auto_login():
@@ -108,7 +108,7 @@ def auto_login():
             algorithm='RS256'
         )
 
-        return make_response({'userId': user.id, 'token': token}, True, AuthMessages.LOGGED_IN_SUCCESSFULLY), 200
+        return make_response({'userId': user.id, 'token': token}, True, AuthMessages.LOGGED_IN), 200
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
 
