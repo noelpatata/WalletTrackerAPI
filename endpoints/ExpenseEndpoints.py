@@ -1,15 +1,13 @@
 from flask import Blueprint, jsonify
 from repositories.ExpenseRepository import ExpenseRepository
-from repositories.UserRepository import UserRepository
-from endpoints.middlewares.authentication import encrypt_and_sign_data
+from endpoints.middlewares.authentication import protected_endpoint
 from utils.responseMaker import make_response
 from utils.constants import AuthMessages, ExpenseMessages
-from utils.multitenant import get_tenant_session
 
 expense_bp = Blueprint('expense', __name__)
 
 @expense_bp.route('/Expense', methods=['GET'])
-@encrypt_and_sign_data
+@protected_endpoint
 def get_by_id(userId, session, decrypted_data):
     data = decrypted_data
     if not data:
@@ -26,7 +24,7 @@ def get_by_id(userId, session, decrypted_data):
     return make_response(expense, True, ExpenseMessages.FETCHED)
 
 @expense_bp.route('/Expense/catId/', methods=['GET'])
-@encrypt_and_sign_data
+@protected_endpoint
 def get_by_category(userId, decrypted_data):
     data = decrypted_data
     if not data:
@@ -39,7 +37,7 @@ def get_by_category(userId, decrypted_data):
     return jsonify(expenses_json)
 
 @expense_bp.route('/Expense/create/', methods=['POST'])  # query parameter userId
-@encrypt_and_sign_data
+@protected_endpoint
 def create_expense(userId, decrypted_data):
     try:
         #data extraction
@@ -64,7 +62,7 @@ def create_expense(userId, decrypted_data):
         return jsonify({'success': False, 'message':  f'An error occurred: {str(e)}'}), 403
     
 @expense_bp.route('/Expense/all/', methods=['DELETE'])
-@encrypt_and_sign_data
+@protected_endpoint
 def delete_all(userId, decrypted_data):
     if not userId:
         return jsonify({'success': False, 'message':  'User not provided'}), 403
@@ -75,7 +73,7 @@ def delete_all(userId, decrypted_data):
         return jsonify({'success': False, 'message':  str(e)}), 403
     
 @expense_bp.route('/Expense/delete/', methods=['POST'])
-@encrypt_and_sign_data
+@protected_endpoint
 def delete_by_id(userId, decrypted_data):
     data = decrypted_data
     if not data:
@@ -90,7 +88,7 @@ def delete_by_id(userId, decrypted_data):
         return jsonify({'success': False, 'message':  str(e)}), 403
     
 @expense_bp.route('/Expense/edit/', methods=['POST'])
-@encrypt_and_sign_data
+@protected_endpoint
 def edit(userId, decrypted_data):
     try:
         data = decrypted_data

@@ -19,7 +19,7 @@ def login():
             user = UserRepository.get_by_username(auth.get('username'))
             
             if user is None:
-                return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+                return make_response(None, False, Messages.INVALID_REQUEST), 200
             if(UserRepository.check_password(user, auth.get('password'))):
                 payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
                 token = jwt.encode(
@@ -30,7 +30,7 @@ def login():
             else:
                 return make_response(None, False, UserMessages.USER_NOT_FOUND), 404
 
-        return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        return make_response(None, False, Messages.INVALID_REQUEST), 200
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
@@ -39,11 +39,11 @@ def register():
     
     data = request.get_json()
     if not data:
-        return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        return make_response(None, False, Messages.INVALID_REQUEST), 200
     
     new_username = data.get('username')
     if not new_username or new_username == "":
-        return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        return make_response(None, False, Messages.INVALID_REQUEST), 200
     
     if UserRepository.check_exists(new_username):
         return make_response(None, False, AuthMessages.ALREADY_EXISTS), 200
@@ -77,22 +77,22 @@ def auto_login():
     try:
         data = request.get_json()
         if not data or 'userId' not in data or 'ciphered' not in data:
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
 
         user_id = data.get('userId')
         ciphered_text_bs64 = data.get('ciphered')
 
         if not user_id or not ciphered_text_bs64:
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
 
         user = User.query.filter_by(id=user_id).first()
         if not user:
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
 
         public_key_pem = base64.b64decode(user.client_public_key)
         
         if not public_key_pem:
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
 
         verified = verify_signature(public_key_pem, ciphered_text_bs64)
         if(not verified):
@@ -113,27 +113,16 @@ def auto_login():
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
 
 @auth_bp.route("/getUserServerPubKey/", methods=['GET'])
-def get_user_pub_key():
+@token_required
+def get_user_pub_key(user_id, session):
     try:
-        data = request.get_json()
 
-        if not data:
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
-
-        username = data.get('username')
-        password = data.get('password')
-
-        if not username or username == "":
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
-        if not password or password == "":
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        if not user_id:
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
         
-        user = User.query.filter(User.username == username).first()
+        user = UserRepository.get_by_id(user_id)
         if not user:
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
-        
-        if(not user.CorrectPassword(password)):
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
         
         return make_response({'userId': user.id, 'publicKey':user.public_key}, True, AuthMessages.FETCHED_SERVER_PUB_KEY), 200
     except Exception as e:
@@ -142,33 +131,21 @@ def get_user_pub_key():
 
 @auth_bp.route("/setUserClientPubKey/", methods=['POST'])
 @token_required
-def set_user_pub_key():
+def set_user_pub_key(user_id, session):
     try:
         data = request.get_json()
 
         if not data:
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
 
         pub_key_b64 = data.get('publicKey')
         if not pub_key_b64:
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
 
-        username = data.get('username')
-        password = data.get('password')
-
-        if not username or username == "":
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        if not user_id:
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
         
-        if not password or password == "":
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
-        
-        user = User.query.filter(User.username == username).first()
-        if not user:
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
-        
-        if(not user.CorrectPassword(password)):
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
-        
+        user = UserRepository.get_by_id(user_id)
         user.client_public_key = pub_key_b64
         user.save()
         
