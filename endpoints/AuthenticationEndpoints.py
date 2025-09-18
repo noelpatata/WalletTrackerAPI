@@ -8,7 +8,7 @@ from utils.multitenant import create_tenant_user_and_db
 from utils.responseMaker import make_response
 from repositories.UserRepository import UserRepository
 from models.User import User
-
+from endpoints.middlewares.authentication import token_required
 auth_bp = Blueprint('authentication', __name__)
 
 @auth_bp.route("/login/", methods=['POST'])
@@ -141,6 +141,7 @@ def get_user_pub_key():
     
 
 @auth_bp.route("/setUserClientPubKey/", methods=['POST'])
+@token_required
 def set_user_pub_key():
     try:
         data = request.get_json()

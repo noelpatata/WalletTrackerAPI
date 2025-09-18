@@ -1,10 +1,8 @@
-from flask import Blueprint, jsonify
-from utils.multitenant import get_tenant_session
+from flask import Blueprint
 from endpoints.middlewares.authentication import protected_endpoint
 from utils.responseMaker import make_response
 from utils.constants import Messages, AuthMessages, ExpenseCategoryMessages
 from repositories.ExpenseCategoryRepository import ExpenseCategoryRepository
-from repositories.UserRepository import UserRepository
 from models.ExpenseCategory import ExpenseCategory
 
 
