@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from utils.multitenant import get_tenant_session
-from endpoints.middlewares.authentication import encrypt_and_sign_data
+from endpoints.middlewares.authentication import protected_endpoint
 from utils.responseMaker import make_response
 from utils.constants import Messages, AuthMessages, ExpenseCategoryMessages
 from repositories.ExpenseCategoryRepository import ExpenseCategoryRepository
@@ -11,7 +11,7 @@ from models.ExpenseCategory import ExpenseCategory
 expensecategory_bp = Blueprint('expensecategory', __name__)
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['GET'])
-@encrypt_and_sign_data
+@protected_endpoint
 def get_by_id(userId, session, decrypted_data):
     try:
         data = decrypted_data
@@ -33,7 +33,7 @@ def get_by_id(userId, session, decrypted_data):
     
 
 @expensecategory_bp.route('/ExpenseCategory/all', methods=['GET'])
-@encrypt_and_sign_data
+@protected_endpoint
 def get_all(userId, session, decrypted_data):
     try:
         if not userId:
@@ -49,7 +49,7 @@ def get_all(userId, session, decrypted_data):
     
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['POST'])
-@encrypt_and_sign_data
+@protected_endpoint
 def create_expense_category(userId, session, decrypted_data):
     try:
         data = decrypted_data
@@ -69,7 +69,7 @@ def create_expense_category(userId, session, decrypted_data):
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
 @expensecategory_bp.route('/ExpenseCategory/', methods=['DELETE'])
-@encrypt_and_sign_data
+@protected_endpoint
 def delete_by_id(userId, session, decrypted_data):
     try:
         data = decrypted_data
@@ -87,7 +87,7 @@ def delete_by_id(userId, session, decrypted_data):
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
 @expensecategory_bp.route('/ExpenseCategory/editName/', methods=['PATCH'])
-@encrypt_and_sign_data
+@protected_endpoint
 def edit_name(userId, session, decrypted_data):
     try:
         data = decrypted_data

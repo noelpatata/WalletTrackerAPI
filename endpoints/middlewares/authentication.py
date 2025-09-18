@@ -16,18 +16,18 @@ def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
 
-        cipher_header = request.headers.get('Cipher')
+        signature_header = request.headers.get('Signature')
 
         auth_header = request.headers.get('Authorization')
         encrypted_data = request.get_json(silent = True)
-        if not cipher_header or not auth_header:
+        if not signature_header or not auth_header:
             return make_response(None, False, AuthMessages.INVALID_HEADERS), 415
 
         
         if not auth_header.startswith("Bearer "):
             return make_response(None, False, AuthMessages.INVALID_HEADERS), 415
 
-        ciphered_text_b64 = cipher_header
+        signed_text_b64 = signature_header
         token = auth_header.split(" ")[1]
         
         if not token:
@@ -55,7 +55,7 @@ def token_required(f):
             )
 
             try:
-                signature_bytes = base64.b64decode(ciphered_text_b64)
+                signature_bytes = base64.b64decode(signed_text_b64)
             except Exception as e:
                 return make_response(None, False, AuthMessages.INVALID_HEADERS), 415
             
@@ -89,7 +89,7 @@ def token_required(f):
     decorated.__name__ = f.__name__
     return decorated
 
-def encrypt_and_sign_data(func):
+def protected_endpoint(func):
     @token_required
     @wraps(func)
     def wrapper(userId, *args, **kwargs):

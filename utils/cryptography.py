@@ -33,14 +33,17 @@ def generate_public_key_string(private_key):
             )
     return base64.b64encode(public_key_bytes).decode()
 
-def generate_keys_file():
+def generate_keys_file(relativeFolder=""):
+    
+    destFolder = relativeFolder+"\\" if len(relativeFolder) > 0 else ""
+
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
         backend=default_backend()
     )
 
-    with open("private_key.pem", "wb") as private_file:
+    with open(destFolder+"private_key.pem", "wb") as private_file:
         private_file.write(
             private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -51,7 +54,7 @@ def generate_keys_file():
     
     public_key = private_key.public_key()
 
-    with open("public_key.pem", "wb") as public_file:
+    with open(destFolder+"public_key.pem", "wb") as public_file:
         public_file.write(
             public_key.public_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -87,8 +90,36 @@ def decrypt_with_private_key(encrypted_data, private_key_str):
     except Exception as e:
         return str(e)
 
-def encrypt_with_public_key(data, public_key_str):
-    decoded_pem = base64.b64decode(public_key_str).decode()
+def hybrid_ecryption_with_public_key(data, public_key_pem):
+    public_key = serialization.load_pem_public_key(base64.b64decode(public_key_pem), backend=default_backend())
+
+    aes_key = os.urandom(32)
+    iv = os.urandom(12)
+
+    cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+    ciphertext = encryptor.update(data.encode("utf-8")) + encryptor.finalize()
+    tag = encryptor.tag
+
+    encrypted_aes_key = public_key.encrypt(
+        aes_key,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+
+    return {
+        "encrypted_aes_key": base64.b64encode(encrypted_aes_key).decode(),
+        "iv": base64.b64encode(iv).decode(),
+        "ciphertext": base64.b64encode(ciphertext).decode(),
+        "tag": base64.b64encode(tag).decode()
+    }
+
+
+def encrypt_with_public_key(data, public_key_pem):
+    decoded_pem = base64.b64decode(public_key_pem).decode()
     public_key = serialization.load_pem_public_key(decoded_pem.encode(), backend=default_backend())
 
     aes_key = os.urandom(32)
@@ -115,8 +146,8 @@ def encrypt_with_public_key(data, public_key_str):
         "tag": base64.b64encode(encryptor.tag).decode()
     }
     
-def sign(data, private_key_str):
-    private_key = serialization.load_pem_private_key(base64.b64decode(private_key_str), password=None, backend=default_backend())
+def sign(data, private_key_pem):
+    private_key = serialization.load_pem_private_key(base64.b64decode(private_key_pem), password=None, backend=default_backend())
     signature = private_key.sign(
         data.encode(),
         padding.PSS(
