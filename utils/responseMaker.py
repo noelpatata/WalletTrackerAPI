@@ -9,11 +9,11 @@ class Response:
     def to_dict(self):
         if isinstance(self.data, list):
             data_value = [
-                item.toJsonDict() if hasattr(item, "toJsonDict") else item
+                item.to_json_dict() if hasattr(item, "to_json_dict") else item
                 for item in self.data
             ]
         else:
-            data_value = self.data.toJsonDict() if self.data is not None and hasattr(self.data, "toJsonDict") else self.data
+            data_value = self.data.to_json_dict() if self.data is not None and hasattr(self.data, "to_json_dict") else self.data
 
         return {
             "success": self.success,

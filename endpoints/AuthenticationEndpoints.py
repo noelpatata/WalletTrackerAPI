@@ -65,12 +65,12 @@ def register():
         db_username, db_password = create_tenant_user_and_db(created_user)
         created_user.db_username = db_username
         created_user.db_password = db_password
-        new_user.save()
+        created_user.save()
 
     except Exception as e:
-        new_user.delete()
+        created_user.delete()
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
-    return make_response(new_user, True, UserMessages.CREATED)
+    return make_response(created_user, True, UserMessages.CREATED)
 
 #TODO
 @auth_bp.route("/autoLogin/", methods=['POST'])
