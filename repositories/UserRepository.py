@@ -24,7 +24,7 @@ class UserRepository:
             "sha256", password.encode("utf-8"), salt, 100000
         )
 
-        user.password = hashed_password
+        user.password = binascii.hexlify(hashed_password).decode('utf-8') 
         user.salt = binascii.hexlify(salt).decode("utf-8")
         db.session.add(user)
         db.session.commit()
