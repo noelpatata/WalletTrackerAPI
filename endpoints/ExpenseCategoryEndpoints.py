@@ -1,5 +1,5 @@
 from flask import Blueprint
-from endpoints.middlewares.authentication import protected_endpoint
+from endpoints.middlewares.authentication import cryptography_required
 from utils.responseMaker import make_response
 from utils.constants import Messages, AuthMessages, ExpenseCategoryMessages
 from repositories.ExpenseCategoryRepository import ExpenseCategoryRepository
@@ -9,7 +9,7 @@ from models.ExpenseCategory import ExpenseCategory
 expensecategory_bp = Blueprint('expensecategory', __name__)
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['GET'])
-@protected_endpoint
+@cryptography_required
 def get_by_id(userId, session, decrypted_data):
     try:
         data = decrypted_data
@@ -31,7 +31,7 @@ def get_by_id(userId, session, decrypted_data):
     
 
 @expensecategory_bp.route('/ExpenseCategory/all', methods=['GET'])
-@protected_endpoint
+@cryptography_required
 def get_all(userId, session, decrypted_data):
     try:
         if not userId:
@@ -47,7 +47,7 @@ def get_all(userId, session, decrypted_data):
     
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['POST'])
-@protected_endpoint
+@cryptography_required
 def create_expense_category(userId, session, decrypted_data):
     try:
         data = decrypted_data
@@ -67,7 +67,7 @@ def create_expense_category(userId, session, decrypted_data):
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
 @expensecategory_bp.route('/ExpenseCategory/', methods=['DELETE'])
-@protected_endpoint
+@cryptography_required
 def delete_by_id(userId, session, decrypted_data):
     try:
         data = decrypted_data
@@ -85,7 +85,7 @@ def delete_by_id(userId, session, decrypted_data):
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
 @expensecategory_bp.route('/ExpenseCategory/editName/', methods=['PATCH'])
-@protected_endpoint
+@cryptography_required
 def edit_name(userId, session, decrypted_data):
     try:
         data = decrypted_data

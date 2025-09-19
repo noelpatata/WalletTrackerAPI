@@ -1,12 +1,17 @@
 import os
 import base64
 import json
+import jwt
+from flask import current_app
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
 from config import SECRET
+from utils.constants import TokenMessages, AuthMessages
+from utils.responseMaker import make_response
+
 
 def generate_private_key():
     private_key = rsa.generate_private_key(
@@ -64,6 +69,9 @@ def generate_keys_file(relativeFolder=""):
 
 def decrypt_with_private_key(encrypted_data, private_key_str):
     try:
+        if not encrypted_data:
+            return make_response(None, False, AuthMessages.INVALID_PAYLOAD), 401
+        
         private_key = serialization.load_pem_private_key(
             base64.b64decode(private_key_str), password=None, backend=default_backend()
         )
@@ -88,7 +96,7 @@ def decrypt_with_private_key(encrypted_data, private_key_str):
 
         return json.loads(decrypted_data.decode())
     except Exception as e:
-        return str(e)
+        return make_response(None, False, AuthMessages.FAILED_DECRYPTION), 401
 
 def hybrid_ecryption_with_public_key(data, public_key_pem):
     public_key = serialization.load_pem_public_key(base64.b64decode(public_key_pem), backend=default_backend())
@@ -158,14 +166,15 @@ def sign(data, private_key_pem):
     )
     return base64.b64encode(signature).decode()
 
-def verify_signature(public_key_pem, ciphered_text_bs64):
-
-    
+def verify_signature(public_key_pem, signed_text_bs64):
     try:
+        if not signed_text_bs64:
+            return make_response(None, False, AuthMessages.INVALID_HEADERS), 415
+        
         public_key = serialization.load_pem_public_key(
-            public_key_pem
+            base64.b64decode(public_key_pem)
         )
-        signature_bytes = base64.b64decode(ciphered_text_bs64)
+        signature_bytes = base64.b64decode(signed_text_bs64)
         public_key.verify(
             signature_bytes,
             SECRET.encode("utf-8"),
@@ -176,6 +185,21 @@ def verify_signature(public_key_pem, ciphered_text_bs64):
             hashes.SHA256()
         )
     except Exception as e:
-        return False
+        return make_response(None, False, AuthMessages.VERIFICATION_FAILED), 401
             
+def decode_jwt(token):
+    try:
+        if not token:
+            return make_response(None, False, TokenMessages.MISSING), 401
+        
+        payload = jwt.decode(
+                token,
+                current_app.config['PUBLIC_KEY'],
+                algorithms=['RS256']
+            )
+        return payload
+    except jwt.ExpiredSignatureError:
+        return make_response(None, False, TokenMessages.EXPIRED), 401
+    except jwt.InvalidTokenError:
+        return make_response(None, False, TokenMessages.INVALID), 401
     

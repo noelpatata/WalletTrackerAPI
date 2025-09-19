@@ -8,7 +8,7 @@ from utils.multitenant import create_tenant_user_and_db
 from utils.responseMaker import make_response
 from repositories.UserRepository import UserRepository
 from models.User import User
-from endpoints.middlewares.authentication import token_required
+from endpoints.middlewares.authentication import token_required, signature_required
 auth_bp = Blueprint('authentication', __name__)
 
 @auth_bp.route("/login/", methods=['POST'])
@@ -45,7 +45,7 @@ def register():
     if not new_username or new_username == "":
         return make_response(None, False, Messages.INVALID_REQUEST), 200
     
-    if UserRepository.check_exists(new_username):
+    if UserRepository.exists(new_username):
         return make_response(None, False, AuthMessages.ALREADY_EXISTS), 200
     
     private_key = generate_private_key() 
@@ -58,13 +58,13 @@ def register():
         public_key = public_keystring,
         client_public_key = ""
     )
-    new_user.set_password(data.get('password'))
-    new_user.save()
+
+    created_user = UserRepository.create_with_password(new_user, data.get('password'))
 
     try:
-        db_username, db_password = create_tenant_user_and_db(new_user)
-        new_user.db_username = db_username
-        new_user.db_password = db_password
+        db_username, db_password = create_tenant_user_and_db(created_user)
+        created_user.db_username = db_username
+        created_user.db_password = db_password
         new_user.save()
 
     except Exception as e:
@@ -72,6 +72,7 @@ def register():
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     return make_response(new_user, True, UserMessages.CREATED)
 
+#TODO
 @auth_bp.route("/autoLogin/", methods=['POST'])
 def auto_login():
     try:
@@ -114,7 +115,7 @@ def auto_login():
 
 @auth_bp.route("/getUserServerPubKey/", methods=['GET'])
 @token_required
-def get_user_pub_key(user_id, session):
+def get_user_pub_key(user_id, session, user):
     try:
 
         if not user_id:
@@ -131,7 +132,7 @@ def get_user_pub_key(user_id, session):
 
 @auth_bp.route("/setUserClientPubKey/", methods=['POST'])
 @token_required
-def set_user_pub_key(user_id, session):
+def set_user_pub_key(user_id, session, user):
     try:
         data = request.get_json()
 

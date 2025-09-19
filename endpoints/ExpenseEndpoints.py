@@ -1,13 +1,13 @@
 from flask import Blueprint, jsonify
 from repositories.ExpenseRepository import ExpenseRepository
-from endpoints.middlewares.authentication import protected_endpoint
+from endpoints.middlewares.authentication import cryptography_required
 from utils.responseMaker import make_response
 from utils.constants import AuthMessages, ExpenseMessages
 
 expense_bp = Blueprint('expense', __name__)
 
 @expense_bp.route('/Expense', methods=['GET'])
-@protected_endpoint
+@cryptography_required
 def get_by_id(userId, session, decrypted_data):
     data = decrypted_data
     if not data:
@@ -24,7 +24,7 @@ def get_by_id(userId, session, decrypted_data):
     return make_response(expense, True, ExpenseMessages.FETCHED)
 
 @expense_bp.route('/Expense/catId/', methods=['GET'])
-@protected_endpoint
+@cryptography_required
 def get_by_category(userId, decrypted_data):
     data = decrypted_data
     if not data:
@@ -37,7 +37,7 @@ def get_by_category(userId, decrypted_data):
     return jsonify(expenses_json)
 
 @expense_bp.route('/Expense/create/', methods=['POST'])  # query parameter userId
-@protected_endpoint
+@cryptography_required
 def create_expense(userId, decrypted_data):
     try:
         #data extraction
@@ -54,7 +54,7 @@ def create_expense(userId, decrypted_data):
             return jsonify({'success': False, 'message': 'Bad request'}), 403    
         
         #save data
-        new_expense = Expense(price=price, category = catId, user=userId, expenseDate = expenseDate)
+        new_expense = ExpenseRepository(price=price, category = catId, user=userId, expenseDate = expenseDate)
         new_expense.save()
         return jsonify({'success': True}), 200
 
@@ -62,18 +62,18 @@ def create_expense(userId, decrypted_data):
         return jsonify({'success': False, 'message':  f'An error occurred: {str(e)}'}), 403
     
 @expense_bp.route('/Expense/all/', methods=['DELETE'])
-@protected_endpoint
+@cryptography_required
 def delete_all(userId, decrypted_data):
     if not userId:
         return jsonify({'success': False, 'message':  'User not provided'}), 403
     try:
-        Expense.deleteByUser(userId)
+        ExpenseRepository.deleteByUser(userId)
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'success': False, 'message':  str(e)}), 403
     
 @expense_bp.route('/Expense/delete/', methods=['POST'])
-@protected_endpoint
+@cryptography_required
 def delete_by_id(userId, decrypted_data):
     data = decrypted_data
     if not data:
@@ -82,13 +82,13 @@ def delete_by_id(userId, decrypted_data):
     if not expenseId:
         return jsonify({'success': False, 'message':  'ExpenseId not provided'}), 403
     try:
-        Expense.deleteById(expenseId)
+        ExpenseRepository.deleteById(expenseId)
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'success': False, 'message':  str(e)}), 403
     
 @expense_bp.route('/Expense/edit/', methods=['POST'])
-@protected_endpoint
+@cryptography_required
 def edit(userId, decrypted_data):
     try:
         data = decrypted_data
@@ -96,7 +96,7 @@ def edit(userId, decrypted_data):
         if not data:
             return jsonify({'success': False, 'message':  'Expense not provided'}), 403    
         id = data.get('id')
-        exp = Expense.get_by_id(id)
+        exp = ExpenseRepository.get_by_id(id)
         if not exp:
             return jsonify({'success': False, 'message':  'Expense not found'}), 403    
         

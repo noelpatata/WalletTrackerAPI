@@ -17,19 +17,15 @@ class UserRepository:
         return db.session.query(User.id).filter_by(username=username).first() is not None
 
     @staticmethod
-    def create(username, password, **extra_fields):
+    def create_with_password(user, password):
         """Factory: creates user with hashed password."""
         salt = os.urandom(32)
         hashed_password = hashlib.pbkdf2_hmac(
             "sha256", password.encode("utf-8"), salt, 100000
         )
 
-        user = User(
-            username=username,
-            password=binascii.hexlify(hashed_password).decode("utf-8"),
-            salt=binascii.hexlify(salt).decode("utf-8"),
-            **extra_fields
-        )
+        user.password = hashed_password
+        user.salt = binascii.hexlify(salt).decode("utf-8")
         db.session.add(user)
         db.session.commit()
         return user
