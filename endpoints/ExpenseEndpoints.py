@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from repositories.ExpenseRepository import ExpenseRepository
-from endpoints.middlewares.authentication import cryptography_required
+from endpoints.middlewares.auth_middleware import cryptography_required
 from utils.responseMaker import make_response
 from utils.constants import AuthMessages, ExpenseMessages
 
@@ -10,6 +10,7 @@ expense_bp = Blueprint('expense', __name__)
 @cryptography_required
 def get_by_id(userId, session, decrypted_data):
     data = decrypted_data
+    
     if not data:
         return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
     

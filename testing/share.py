@@ -10,12 +10,11 @@ if not token:
     sys.exit()
 
 public_key_pem = base64.b64encode(public_key_bytes).decode("utf-8")
-print(public_key_pem)
 
 url = "http://localhost:8080/setUserClientPubKey"
 headers = {
     "Content-Type": "application/json",
-    "Authorization": "Bearer YOUR_JWT_TOKEN_HERE"
+    "Authorization": f"Bearer {token}"
 }
 data = {
     "publicKey": public_key_pem

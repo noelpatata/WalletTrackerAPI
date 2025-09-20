@@ -4,7 +4,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from db import db
 from config import MYSQLHOST, MYSQLDBNAME
-
+from exceptions.HttpException import HttpError
+from utils.constants import MultitenantMessages
 _engine_cache = {}
 _lock = threading.Lock()
 
@@ -69,5 +70,10 @@ def initialise_tenant_db(user):
 
 
 def get_tenant_session(user):
-    eng = initialise_tenant_db(user)
-    return scoped_session(sessionmaker(bind=eng))
+    try:
+        eng = initialise_tenant_db(user)
+        return scoped_session(sessionmaker(bind=eng))
+    except Exception as e:
+        raise HttpError(MultitenantMessages.INIT_TENANT_FAILED, 500, e)
+
+        

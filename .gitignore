@@ -1,6 +1,6 @@
+.vscode/
 __pycache__/
 __pycache__
 .env/
-testing/*
-private_key.pem
-public_key.pem
+*.pem
+*.log

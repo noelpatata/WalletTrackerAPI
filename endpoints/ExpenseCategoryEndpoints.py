@@ -1,10 +1,10 @@
 from flask import Blueprint
-from endpoints.middlewares.authentication import cryptography_required
+from endpoints.middlewares.auth_middleware import cryptography_required
 from utils.responseMaker import make_response
 from utils.constants import Messages, AuthMessages, ExpenseCategoryMessages
 from repositories.ExpenseCategoryRepository import ExpenseCategoryRepository
 from models.ExpenseCategory import ExpenseCategory
-
+from exceptions.HttpException import HttpError
 
 expensecategory_bp = Blueprint('expensecategory', __name__)
 
@@ -48,23 +48,25 @@ def get_all(userId, session, decrypted_data):
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['POST'])
 @cryptography_required
-def create_expense_category(userId, session, decrypted_data):
+def create_expense_category(user_id, session, user, decrypted_data):
     try:
         data = decrypted_data
-        catName = data.get('name')
+        cat_name = data.get("name")
 
-        if not catName or not userId:
-            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        if not cat_name or not user_id:
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
         
-        new_category = ExpenseCategory(name=catName)
+        new_category = ExpenseCategory(name=cat_name)
         new_category.save(session)
 
         session.remove()
 
         return make_response(new_category, True, ExpenseCategoryMessages.CREATED), 200
 
+    except HttpError as e:
+        return make_response(None, False, e.message, e.inner_exception), e.status_code
     except Exception as e:
-        return make_response(None, False, Messages.INTERNAL_ERROR), 500
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
 @expensecategory_bp.route('/ExpenseCategory/', methods=['DELETE'])
 @cryptography_required

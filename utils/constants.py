@@ -15,10 +15,17 @@ class AuthMessages:
     ASSIGNED_SERVER_CLIENT_KEY = "Assigned client's public key successfully"
     ALREADY_EXISTS = "User already exists"
     DECRYPTION_FAILED = "Decryption process failed"
+    ENCRYPTION_FAILED = "Encryption process failed"
+    SIGNATURE_FAILED = "Signature process failed"
     VERIFICATION_FAILED = "Signature verification process failed"
+    PRIVATE_KEY_FAILED = "Private key generation failed"
+    PUBLIC_KEY_FAILED = "Public key generation failed"
+    PAIRED_KEYS_FAILED = "Paired keys generation failed"
     INVALID_KEY = "Invalid key"
     INVALID_HEADERS = "Invalid headers"
     INVALID_PAYLOAD = "Invalid payload"
+class MultitenantMessages:
+    INIT_TENANT_FAILED = "Tenant initialisation failed"
 class ExpenseCategoryMessages:
     FETCHED = "ExpenseCategory fetched successfully"
     FETCHED_PLURAL = "ExpenseCategory's fetched successfully"

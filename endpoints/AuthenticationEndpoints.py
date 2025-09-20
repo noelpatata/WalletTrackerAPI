@@ -8,7 +8,9 @@ from utils.multitenant import create_tenant_user_and_db
 from utils.responseMaker import make_response
 from repositories.UserRepository import UserRepository
 from models.User import User
-from endpoints.middlewares.authentication import token_required, signature_required
+from endpoints.middlewares.auth_middleware import token_required
+from exceptions.HttpException import HttpError
+
 auth_bp = Blueprint('authentication', __name__)
 
 @auth_bp.route("/login/", methods=['POST'])
@@ -31,6 +33,8 @@ def login():
                 return make_response(None, False, UserMessages.USER_NOT_FOUND), 404
 
         return make_response(None, False, Messages.INVALID_REQUEST), 200
+    except HttpError as e:
+        return make_response(None, False, e.message, e.inner_exception), e.status_code
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
@@ -69,7 +73,7 @@ def register():
 
     except Exception as e:
         created_user.delete()
-        return make_response(None, False, Messages.INTERNAL_ERROR), 500
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     return make_response(created_user, True, UserMessages.CREATED)
 
 #TODO

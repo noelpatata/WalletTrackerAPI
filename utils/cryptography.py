@@ -11,63 +11,81 @@ from cryptography.hazmat.backends import default_backend
 from config import SECRET
 from utils.constants import TokenMessages, AuthMessages
 from utils.responseMaker import make_response
-
+from exceptions.HttpException import HttpError
 
 def generate_private_key():
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
-    )
-    return private_key
+    try:
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend()
+        )
+        return private_key
+    except Exception as e:
+        raise HttpError(AuthMessages.PRIVATE_KEY_FAILED, 401, e)
+    
 
 def generate_private_key_string(private_key):
-    private_bytes = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
-    )
-    return base64.b64encode(private_bytes).decode()
+    try:
+        private_bytes = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        return base64.b64encode(private_bytes).decode()
+    except Exception as e:
+        raise HttpError(AuthMessages.PRIVATE_KEY_FAILED, 401, e)
+    
     
 
 def generate_public_key_string(private_key):
-    public_key = private_key.public_key()
-    public_key_bytes =  public_key.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
-            )
-    return base64.b64encode(public_key_bytes).decode()
+    try:
+        public_key = private_key.public_key()
+        public_key_bytes =  public_key.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                )
+        return base64.b64encode(public_key_bytes).decode()
+    except Exception as e:
+        raise HttpError(AuthMessages.PUBLIC_KEY_FAILED, 401, e)
+    
 
 def generate_keys_file(relativeFolder=""):
-    
-    destFolder = relativeFolder+"\\" if len(relativeFolder) > 0 else ""
 
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
-    )
+    try:
+        destFolder = relativeFolder+"\\" if len(relativeFolder) > 0 else ""
 
-    with open(destFolder+"private_key.pem", "wb") as private_file:
-        private_file.write(
-            private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.NoEncryption()
-            )
-        )
-    
-    public_key = private_key.public_key()
-
-    with open(destFolder+"public_key.pem", "wb") as public_file:
-        public_file.write(
-            public_key.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
-            )
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend()
         )
 
-def decrypt_with_private_key(encrypted_data, private_key_str):
+        with open(destFolder+"private_key.pem", "wb") as private_file:
+            private_file.write(
+                private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.TraditionalOpenSSL,
+                    encryption_algorithm=serialization.NoEncryption()
+                )
+            )
+        
+        public_key = private_key.public_key()
+
+        with open(destFolder+"public_key.pem", "wb") as public_file:
+            public_file.write(
+                public_key.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                )
+            )
+    except Exception as e:
+        raise HttpError(AuthMessages.PAIRED_KEYS_FAILED, 401, e)
+    
+    
+    
+
+def hybrid_decryption(encrypted_data, private_key_str):
     try:
         if not encrypted_data:
             return make_response(None, False, AuthMessages.INVALID_PAYLOAD), 401
@@ -92,79 +110,95 @@ def decrypt_with_private_key(encrypted_data, private_key_str):
 
         cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv, tag), backend=default_backend())
         decryptor = cipher.decryptor()
-        decrypted_data = decryptor.update(ciphertext) + decryptor.finalize()
-
-        return json.loads(decrypted_data.decode())
+        decrypted_bytes = decryptor.update(ciphertext) + decryptor.finalize()
+        decrypted_text = decrypted_bytes.decode("utf-8")
+        decrypted_json = json.loads(decrypted_text)
+        
+        return decrypted_json
     except Exception as e:
-        return make_response(None, False, AuthMessages.FAILED_DECRYPTION), 401
+        raise HttpError(AuthMessages.DECRYPTION_FAILED, 401, e)
 
-def hybrid_ecryption_with_public_key(data, public_key_pem):
-    public_key = serialization.load_pem_public_key(base64.b64decode(public_key_pem), backend=default_backend())
+def hybrid_encryption(data, public_key_pem):
 
-    aes_key = os.urandom(32)
-    iv = os.urandom(12)
+    try:
+        public_key = serialization.load_pem_public_key(base64.b64decode(public_key_pem), backend=default_backend())
 
-    cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv), backend=default_backend())
-    encryptor = cipher.encryptor()
-    ciphertext = encryptor.update(data.encode("utf-8")) + encryptor.finalize()
-    tag = encryptor.tag
+        aes_key = os.urandom(32)
+        iv = os.urandom(12)
 
-    encrypted_aes_key = public_key.encrypt(
-        aes_key,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None
+        cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+        ciphertext = encryptor.update(data.encode("utf-8")) + encryptor.finalize()
+        tag = encryptor.tag
+
+        encrypted_aes_key = public_key.encrypt(
+            aes_key,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
         )
-    )
 
-    return {
-        "encrypted_aes_key": base64.b64encode(encrypted_aes_key).decode(),
-        "iv": base64.b64encode(iv).decode(),
-        "ciphertext": base64.b64encode(ciphertext).decode(),
-        "tag": base64.b64encode(tag).decode()
-    }
+        return {
+            "encrypted_aes_key": base64.b64encode(encrypted_aes_key).decode(),
+            "iv": base64.b64encode(iv).decode(),
+            "ciphertext": base64.b64encode(ciphertext).decode(),
+            "tag": base64.b64encode(tag).decode()
+        }
+    except Exception as e:
+        raise HttpError(AuthMessages.ENCRYPTION_FAILED, 401, e)
+    
 
 
 def encrypt_with_public_key(data, public_key_pem):
-    decoded_pem = base64.b64decode(public_key_pem).decode()
-    public_key = serialization.load_pem_public_key(decoded_pem.encode(), backend=default_backend())
+    try:
+        decoded_pem = base64.b64decode(public_key_pem).decode()
+        public_key = serialization.load_pem_public_key(decoded_pem.encode(), backend=default_backend())
 
-    aes_key = os.urandom(32)
-    
-    iv = os.urandom(12)
+        aes_key = os.urandom(32)
+        
+        iv = os.urandom(12)
 
-    cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv), backend=default_backend())
-    encryptor = cipher.encryptor()
-    ciphertext = encryptor.update(data.encode()) + encryptor.finalize()
+        cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+        ciphertext = encryptor.update(data.encode()) + encryptor.finalize()
 
-    encrypted_aes_key = public_key.encrypt(
-        aes_key,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None
+        encrypted_aes_key = public_key.encrypt(
+            aes_key,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
         )
-    )
 
-    return {
-        "encrypted_aes_key": base64.b64encode(encrypted_aes_key).decode(),
-        "iv": base64.b64encode(iv).decode(),
-        "ciphertext": base64.b64encode(ciphertext).decode(),
-        "tag": base64.b64encode(encryptor.tag).decode()
-    }
+        return {
+            "encrypted_aes_key": base64.b64encode(encrypted_aes_key).decode(),
+            "iv": base64.b64encode(iv).decode(),
+            "ciphertext": base64.b64encode(ciphertext).decode(),
+            "tag": base64.b64encode(encryptor.tag).decode()
+        }
+    except Exception as e:
+        raise HttpError(AuthMessages.ENCRYPTION_FAILED, 401, e)
+    
     
 def sign(data, private_key_pem):
-    private_key = serialization.load_pem_private_key(base64.b64decode(private_key_pem), password=None, backend=default_backend())
-    signature = private_key.sign(
-        data.encode(),
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=32
-        ),
-        hashes.SHA256()
-    )
-    return base64.b64encode(signature).decode()
+    try:
+        private_key = serialization.load_pem_private_key(base64.b64decode(private_key_pem), password=None, backend=default_backend())
+        signature = private_key.sign(
+            data.encode(),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=32
+            ),
+            hashes.SHA256()
+        )
+        return base64.b64encode(signature).decode()
+    except Exception as e:
+        raise HttpError(AuthMessages.SIGNATURE_FAILED, 401, e)
+    
+    
 
 def verify_signature(public_key_pem, signed_text_bs64):
     try:
@@ -185,13 +219,10 @@ def verify_signature(public_key_pem, signed_text_bs64):
             hashes.SHA256()
         )
     except Exception as e:
-        return make_response(None, False, AuthMessages.VERIFICATION_FAILED), 401
+        raise HttpError(AuthMessages.VERIFICATION_FAILED, 401, e)
             
 def decode_jwt(token):
     try:
-        if not token:
-            return make_response(None, False, TokenMessages.MISSING), 401
-        
         payload = jwt.decode(
                 token,
                 current_app.config['PUBLIC_KEY'],
@@ -199,7 +230,7 @@ def decode_jwt(token):
             )
         return payload
     except jwt.ExpiredSignatureError:
-        return make_response(None, False, TokenMessages.EXPIRED), 401
+        raise HttpError(TokenMessages.EXPIRED, 401)
     except jwt.InvalidTokenError:
-        return make_response(None, False, TokenMessages.INVALID), 401
+        raise HttpError(TokenMessages.INVALID, 401)
     
