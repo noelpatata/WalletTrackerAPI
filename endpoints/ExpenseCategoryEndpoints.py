@@ -1,5 +1,5 @@
 from flask import Blueprint
-from endpoints.middlewares.auth_middleware import cryptography_required
+from endpoints.middlewares.auth_middleware import cryptography_required, signature_required
 from utils.responseMaker import make_response
 from utils.constants import Messages, AuthMessages, ExpenseCategoryMessages
 from repositories.ExpenseCategoryRepository import ExpenseCategoryRepository
@@ -10,7 +10,7 @@ expensecategory_bp = Blueprint('expensecategory', __name__)
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['GET'])
 @cryptography_required
-def get_by_id(userId, session, decrypted_data):
+def get_by_id(user_id, session, decrypted_data):
     try:
         data = decrypted_data
         if not data:
@@ -24,26 +24,31 @@ def get_by_id(userId, session, decrypted_data):
         if not category:
             return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
-        return make_response(category, True, ExpenseCategoryMessages.FETCHED_SUCCESSFULLY), 200
+        response = make_response(category, True, ExpenseCategoryMessages.FETCHED_SUCCESSFULLY), 200
+        session.remove()
+
+        return response
     
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR), 500
     
 
 @expensecategory_bp.route('/ExpenseCategory/all', methods=['GET'])
-@cryptography_required
-def get_all(userId, session, decrypted_data):
+@signature_required
+def get_all(user_id, session, user):
     try:
-        if not userId:
+        if not user_id:
             return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
         
         categories = ExpenseCategoryRepository.get_all(session)
-        session.remove()
         
-        return make_response(categories, True, ExpenseCategoryMessages.FETCHED_SUCCESSFULLY_PLURAL), 200
+        response = make_response(categories, True, ExpenseCategoryMessages.FETCHED_SUCCESSFULLY_PLURAL), 200
+        session.remove()
+
+        return response
 
     except Exception as e:
-        return make_response(None, False, Messages.INTERNAL_ERROR), 500
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
 
 @expensecategory_bp.route('/ExpenseCategory/', methods=['POST'])
@@ -59,9 +64,11 @@ def create_expense_category(user_id, session, user, decrypted_data):
         new_category = ExpenseCategory(name=cat_name)
         new_category.save(session)
 
+
+        response = make_response(new_category, True, ExpenseCategoryMessages.CREATED), 200
         session.remove()
 
-        return make_response(new_category, True, ExpenseCategoryMessages.CREATED), 200
+        return response
 
     except HttpError as e:
         return make_response(None, False, e.message, e.inner_exception), e.status_code
@@ -70,7 +77,7 @@ def create_expense_category(user_id, session, user, decrypted_data):
     
 @expensecategory_bp.route('/ExpenseCategory/', methods=['DELETE'])
 @cryptography_required
-def delete_by_id(userId, session, decrypted_data):
+def delete_by_id(user_id, session, decrypted_data):
     try:
         data = decrypted_data
         if not data:
@@ -88,7 +95,7 @@ def delete_by_id(userId, session, decrypted_data):
     
 @expensecategory_bp.route('/ExpenseCategory/editName/', methods=['PATCH'])
 @cryptography_required
-def edit_name(userId, session, decrypted_data):
+def edit_name(user_id, session, decrypted_data):
     try:
         data = decrypted_data
 

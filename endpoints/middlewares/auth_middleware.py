@@ -15,6 +15,9 @@ def token_required(f):
         try:
             auth_header = request.headers.get('Authorization')
 
+            if not auth_header:
+                raise HttpError(AuthMessages.INVALID_HEADERS, 415)
+            
             if not auth_header.startswith("Bearer "):
                 raise HttpError(AuthMessages.INVALID_HEADERS, 415)
             
