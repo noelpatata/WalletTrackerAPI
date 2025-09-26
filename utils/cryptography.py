@@ -121,7 +121,6 @@ def hybrid_decryption(encrypted_data, private_key_str):
 def hybrid_encryption(data, public_key_pem):
 
     try:
-        public_key = serialization.load_pem_public_key(base64.b64decode(public_key_pem), backend=default_backend())
 
         aes_key = os.urandom(32)
         iv = os.urandom(12)
@@ -130,6 +129,8 @@ def hybrid_encryption(data, public_key_pem):
         encryptor = cipher.encryptor()
         ciphertext = encryptor.update(data.encode("utf-8")) + encryptor.finalize()
         tag = encryptor.tag
+
+        public_key = serialization.load_pem_public_key(base64.b64decode(public_key_pem), backend=default_backend())
 
         encrypted_aes_key = public_key.encrypt(
             aes_key,
@@ -148,40 +149,6 @@ def hybrid_encryption(data, public_key_pem):
         }
     except Exception as e:
         raise HttpError(AuthMessages.ENCRYPTION_FAILED, 401, e)
-    
-
-
-def encrypt_with_public_key(data, public_key_pem):
-    try:
-        decoded_pem = base64.b64decode(public_key_pem).decode()
-        public_key = serialization.load_pem_public_key(decoded_pem.encode(), backend=default_backend())
-
-        aes_key = os.urandom(32)
-        
-        iv = os.urandom(12)
-
-        cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-        ciphertext = encryptor.update(data.encode()) + encryptor.finalize()
-
-        encrypted_aes_key = public_key.encrypt(
-            aes_key,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-
-        return {
-            "encrypted_aes_key": base64.b64encode(encrypted_aes_key).decode(),
-            "iv": base64.b64encode(iv).decode(),
-            "ciphertext": base64.b64encode(ciphertext).decode(),
-            "tag": base64.b64encode(encryptor.tag).decode()
-        }
-    except Exception as e:
-        raise HttpError(AuthMessages.ENCRYPTION_FAILED, 401, e)
-    
     
 def sign(data, private_key_pem):
     try:
