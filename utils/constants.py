@@ -27,6 +27,7 @@ class AuthMessages:
 class MultitenantMessages:
     INIT_TENANT_FAILED = "Tenant initialisation failed"
 class ExpenseCategoryMessages:
+    NOT_FOUND = "ExpenseCategory not found"
     FETCHED = "ExpenseCategory fetched successfully"
     FETCHED_PLURAL = "ExpenseCategories fetched successfully"
     CREATED = "ExpenseCategory created successfully"

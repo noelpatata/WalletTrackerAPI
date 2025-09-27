@@ -36,7 +36,7 @@ def login():
     except HttpError as e:
         return make_response(None, False, e.message, e.inner_exception), e.status_code
     except Exception as e:
-        return make_response(None, False, Messages.INTERNAL_ERROR), 500
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
 @auth_bp.route("/register/", methods=['POST'])
 def register():
@@ -115,7 +115,7 @@ def auto_login():
 
         return make_response({'userId': user.id, 'token': token}, True, AuthMessages.LOGGED_IN), 200
     except Exception as e:
-        return make_response(None, False, Messages.INTERNAL_ERROR), 500
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
 
 @auth_bp.route("/getUserServerPubKey/", methods=['GET'])
 @token_required
@@ -131,7 +131,7 @@ def get_user_pub_key(user_id, session, user):
         
         return make_response({'userId': user.id, 'publicKey':user.public_key}, True, AuthMessages.FETCHED_SERVER_PUB_KEY), 200
     except Exception as e:
-        return make_response(None, False, Messages.INTERNAL_ERROR), 500
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
 
 @auth_bp.route("/setUserClientPubKey/", methods=['POST'])
@@ -156,6 +156,6 @@ def set_user_pub_key(user_id, session, user):
         
         return make_response(None, True, AuthMessages.ASSIGNED_SERVER_CLIENT_KEY), 200
     except Exception as e:
-        return make_response(None, False, Messages.INTERNAL_ERROR), 500
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
     

@@ -2,27 +2,28 @@ from flask import Blueprint, jsonify
 from repositories.ExpenseRepository import ExpenseRepository
 from endpoints.middlewares.auth_middleware import cryptography_required
 from utils.responseMaker import make_response
-from utils.constants import AuthMessages, ExpenseMessages
+from utils.constants import Messages, AuthMessages, ExpenseMessages
 
 expense_bp = Blueprint('expense', __name__)
 
 @expense_bp.route('/Expense', methods=['GET'])
 @cryptography_required
-def get_by_id(userId, session, decrypted_data):
-    data = decrypted_data
-    
-    if not data:
-        return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
-    
-    expenseId = data.get('expenseId')
-    if not expenseId:
-        return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+def get_by_id(userId, session, user, decrypted_data):
+    try:
+        data = decrypted_data
+        
+        expenseId = data.get('expenseId')
+        if not expenseId:
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
 
-    expense = ExpenseRepository.get_by_id(expenseId, session)
-    if not expense:
-        return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        expense = ExpenseRepository.get_by_id(expenseId, session)
+        if not expense:
+            return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+        
+        return make_response(expense, True, ExpenseMessages.FETCHED)
+    except Exception as e:
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
-    return make_response(expense, True, ExpenseMessages.FETCHED)
 
 @expense_bp.route('/Expense/catId/', methods=['GET'])
 @cryptography_required
