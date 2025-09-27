@@ -28,13 +28,13 @@ class MultitenantMessages:
     INIT_TENANT_FAILED = "Tenant initialisation failed"
 class ExpenseCategoryMessages:
     FETCHED = "ExpenseCategory fetched successfully"
-    FETCHED_PLURAL = "ExpenseCategory's fetched successfully"
+    FETCHED_PLURAL = "ExpenseCategories fetched successfully"
     CREATED = "ExpenseCategory created successfully"
     DELETED = "ExpenseCategory deleted successfully"
     MODIFIED = "ExpenseCategory modified successfully"
 class ExpenseMessages:
     FETCHED = "Expense fetched successfully"
-    FETCHED_PLURAL = "Expense's fetched successfully"
+    FETCHED_PLURAL = "Expenses fetched successfully"
     CREATED = "Expense created successfully"
     DELETED = "Expense deleted successfully"
     MODIFIED = "Expense modified successfully"

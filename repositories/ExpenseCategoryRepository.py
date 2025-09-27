@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import func, case
 from db import db
 from models.ExpenseCategory import ExpenseCategory
 from models.Expense import Expense
@@ -26,7 +26,10 @@ class ExpenseCategoryRepository:
     def get_all(session=None):
         sess = session or db.session
         categories = sess.query(ExpenseCategory).order_by(
-            ExpenseCategory.sortOrder.asc().nullsfirst(),
+            case(
+                (ExpenseCategory.sortOrder == None, 1),
+                else_=0
+            ),ExpenseCategory.sortOrder.asc(),
             ExpenseCategory.id
         ).all()
 
