@@ -4,8 +4,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from db import db
 from config import MYSQLHOST, MYSQLDBNAME
-from exceptions.HttpException import HttpError
-from utils.constants import MultitenantMessages
+from exceptions.Http import HttpException
+from utils.Constants import MultitenantMessages
 _engine_cache = {}
 _lock = threading.Lock()
 
@@ -20,60 +20,67 @@ def construct_db_connection_string(db_username: str, db_password: str, user_id: 
 
 
 def create_tenant_user_and_db(user) -> tuple[str, str]:
-    admin_engine = db.engine
-    user_dbname = construct_db_name(MYSQLDBNAME, user.id)
-    db_username = f"u{user.id}"
-    db_password = secrets.token_urlsafe(16)
+    try:
+        admin_engine = db.engine
+        user_dbname = construct_db_name(MYSQLDBNAME, user.id)
+        db_username = f"u{user.id}"
+        db_password = secrets.token_urlsafe(16)
 
-    with admin_engine.connect() as conn:
-        conn.execute(
-            text(
-                f"CREATE DATABASE IF NOT EXISTS `{user_dbname}` "
-                "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+        with admin_engine.connect() as conn:
+            conn.execute(
+                text(
+                    f"CREATE DATABASE IF NOT EXISTS `{user_dbname}` "
+                    "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+                )
             )
-        )
 
-        conn.execute(
-            text(f"CREATE USER IF NOT EXISTS '{db_username}'@'%' IDENTIFIED BY :pwd"),
-            {"pwd": db_password},
-        )
+            conn.execute(
+                text(f"CREATE USER IF NOT EXISTS '{db_username}'@'%' IDENTIFIED BY :pwd"),
+                {"pwd": db_password},
+            )
 
-        conn.execute(
-            text(f"GRANT ALL PRIVILEGES ON `{user_dbname}`.* TO '{db_username}'@'%'")
-        )
-        conn.execute(text("FLUSH PRIVILEGES"))
+            conn.execute(
+                text(f"GRANT ALL PRIVILEGES ON `{user_dbname}`.* TO '{db_username}'@'%'")
+            )
+            conn.execute(text("FLUSH PRIVILEGES"))
 
-    user.db_username = db_username
-    user.db_password = db_password
-    initialise_tenant_db(user)
+        user.db_username = db_username
+        user.db_password = db_password
+        user.save()
+        initialise_tenant_db(user)
 
-    return db_username, db_password
+        return db_username, db_password
+    except Exception as e:
+        raise HttpException(MultitenantMessages.INIT_TENANT_FAILED, 500, e)
+    
 
 
 def initialise_tenant_db(user):
-    with _lock:
-        if user.id in _engine_cache:
-            return _engine_cache[user.id]
+    try:
+        with _lock:
+            if user.id in _engine_cache:
+                return _engine_cache[user.id]
 
-        uri = construct_db_connection_string(user.db_username, user.db_password, user.id)
-        eng = create_engine(uri, pool_pre_ping=True, pool_recycle=3600)
-        _engine_cache[user.id] = eng
+            uri = construct_db_connection_string(user.db_username, user.db_password, user.id)
+            eng = create_engine(uri, pool_pre_ping=True, pool_recycle=3600)
+            _engine_cache[user.id] = eng
 
-        from repositories.ExpenseRepository import Expense
-        from repositories.ExpenseCategoryRepository import ExpenseCategory
+            from repositories.ExpenseRepository import Expense
+            from repositories.ExpenseCategoryRepository import ExpenseCategory
 
-        db.metadata.create_all(
-            bind=eng, tables=[Expense.__table__, ExpenseCategory.__table__]
-        )
+            db.metadata.create_all(
+                bind=eng, tables=[Expense.__table__, ExpenseCategory.__table__]
+            )
 
-        return eng
-
-
+            return eng
+    except Exception as e:
+        raise HttpException(MultitenantMessages.INIT_TENANT_FAILED, 500, e) 
+    
 def get_tenant_session(user):
     try:
         eng = initialise_tenant_db(user)
         return scoped_session(sessionmaker(bind=eng))
     except Exception as e:
-        raise HttpError(MultitenantMessages.INIT_TENANT_FAILED, 500, e)
+        raise HttpException(MultitenantMessages.INIT_TENANT_FAILED, 500, e)
 
         

@@ -2,14 +2,15 @@ import datetime
 import base64
 import jwt
 from flask import Blueprint, request, current_app
-from utils.cryptography import generate_private_key, generate_private_key_string, generate_public_key_string, verify_signature
-from utils.constants import  Messages, AuthMessages, UserMessages
-from utils.multitenant import create_tenant_user_and_db
-from utils.responseMaker import make_response
+from utils.Cryptography import generate_private_key, generate_private_key_string, generate_public_key_string, verify_signature
+from utils.Constants import  Messages, AuthMessages, UserMessages
+from utils.Multitenant import create_tenant_user_and_db
+from utils.ResponseMaker import make_response
 from repositories.UserRepository import UserRepository
 from models.User import User
 from endpoints.middlewares.auth_middleware import token_required
-from exceptions.HttpException import HttpError
+from exceptions.Http import HttpException
+from validators.FieldValidator import is_empty
 
 auth_bp = Blueprint('authentication', __name__)
 
@@ -33,48 +34,45 @@ def login():
                 return make_response(None, False, UserMessages.USER_NOT_FOUND), 404
 
         return make_response(None, False, Messages.INVALID_REQUEST), 200
-    except HttpError as e:
-        return make_response(None, False, e.message, e.inner_exception), e.status_code
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
 @auth_bp.route("/register/", methods=['POST'])
 def register():
-    
-    data = request.get_json()
-    if not data:
-        return make_response(None, False, Messages.INVALID_REQUEST), 200
-    
-    new_username = data.get('username')
-    if not new_username or new_username == "":
-        return make_response(None, False, Messages.INVALID_REQUEST), 200
-    
-    if UserRepository.exists(new_username):
-        return make_response(None, False, AuthMessages.ALREADY_EXISTS), 200
-    
-    private_key = generate_private_key() 
-    private_keystring = generate_private_key_string(private_key)
-    public_keystring = generate_public_key_string(private_key)
-    
-    new_user = User(
-        username = new_username,
-        private_key = private_keystring,
-        public_key = public_keystring,
-        client_public_key = ""
-    )
-
-    created_user = UserRepository.create_with_password(new_user, data.get('password'))
-
     try:
-        db_username, db_password = create_tenant_user_and_db(created_user)
-        created_user.db_username = db_username
-        created_user.db_password = db_password
-        created_user.save()
+        data = request.get_json()
+        if not data:
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
+        is_empty(data, ["username", "password"])
+        
+        new_username = data.get('username')
+        password = data.get('password')
+        
+        if UserRepository.exists(new_username):
+            return make_response(None, False, AuthMessages.ALREADY_EXISTS), 200
+        
+        private_key = generate_private_key() 
+        private_keystring = generate_private_key_string(private_key)
+        public_keystring = generate_public_key_string(private_key)
+        
+        new_user = User(
+            username = new_username,
+            private_key = private_keystring,
+            public_key = public_keystring,
+            client_public_key = ""
+        )
 
+        created_user = UserRepository.create_with_password(new_user, password)
+        create_tenant_user_and_db(created_user)
+
+        return make_response(created_user, True, UserMessages.CREATED)
+    
+    except HttpException as e:
+        return make_response(None, False, e.message, e.inner_exception), e.status_code
     except Exception as e:
         created_user.delete()
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
-    return make_response(created_user, True, UserMessages.CREATED)
+    
 
 #TODO
 @auth_bp.route("/autoLogin/", methods=['POST'])
@@ -155,6 +153,9 @@ def set_user_pub_key(user_id, session, user):
         user.save()
         
         return make_response(None, True, AuthMessages.ASSIGNED_SERVER_CLIENT_KEY), 200
+    
+    except HttpException as e:
+        return make_response(None, False, e.message, e.inner_exception), e.status_code
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     

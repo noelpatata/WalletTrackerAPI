@@ -5,7 +5,7 @@ from endpoints.ExpenseCategoryEndpoints import expensecategory_bp
 from endpoints.AuthenticationEndpoints import auth_bp
 from db import db
 from config import MYSQLUSERNAME, MYSQLPASSWORD, MYSQLHOST, MYSQLDBNAME
-from utils.cryptography import generate_keys_file
+from utils.Cryptography import generate_keys_file
 
 app = Flask(__name__)
 

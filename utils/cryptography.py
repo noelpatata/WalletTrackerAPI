@@ -9,9 +9,9 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
 from config import SECRET
-from utils.constants import TokenMessages, AuthMessages
-from utils.responseMaker import make_response
-from exceptions.HttpException import HttpError
+from utils.Constants import TokenMessages, AuthMessages
+from utils.ResponseMaker import make_response
+from exceptions.Http import HttpException
 
 def generate_private_key():
     try:
@@ -22,7 +22,7 @@ def generate_private_key():
         )
         return private_key
     except Exception as e:
-        raise HttpError(AuthMessages.PRIVATE_KEY_FAILED, 401, e)
+        raise HttpException(AuthMessages.PRIVATE_KEY_FAILED, 401, e)
     
 
 def generate_private_key_string(private_key):
@@ -34,7 +34,7 @@ def generate_private_key_string(private_key):
         )
         return base64.b64encode(private_bytes).decode()
     except Exception as e:
-        raise HttpError(AuthMessages.PRIVATE_KEY_FAILED, 401, e)
+        raise HttpException(AuthMessages.PRIVATE_KEY_FAILED, 401, e)
     
     
 
@@ -47,7 +47,7 @@ def generate_public_key_string(private_key):
                 )
         return base64.b64encode(public_key_bytes).decode()
     except Exception as e:
-        raise HttpError(AuthMessages.PUBLIC_KEY_FAILED, 401, e)
+        raise HttpException(AuthMessages.PUBLIC_KEY_FAILED, 401, e)
     
 
 def generate_keys_file(relativeFolder=""):
@@ -80,7 +80,7 @@ def generate_keys_file(relativeFolder=""):
                 )
             )
     except Exception as e:
-        raise HttpError(AuthMessages.PAIRED_KEYS_FAILED, 401, e)
+        raise HttpException(AuthMessages.PAIRED_KEYS_FAILED, 401, e)
     
     
     
@@ -116,7 +116,7 @@ def hybrid_decryption(encrypted_data, private_key_str):
         
         return decrypted_json
     except Exception as e:
-        raise HttpError(AuthMessages.DECRYPTION_FAILED, 401, e)
+        raise HttpException(AuthMessages.DECRYPTION_FAILED, 401, e)
 
 def hybrid_encryption(data, public_key_pem):
 
@@ -148,7 +148,7 @@ def hybrid_encryption(data, public_key_pem):
             "tag": base64.b64encode(tag).decode()
         }
     except Exception as e:
-        raise HttpError(AuthMessages.ENCRYPTION_FAILED, 401, e)
+        raise HttpException(AuthMessages.ENCRYPTION_FAILED, 401, e)
     
 def sign(data, private_key_pem):
     try:
@@ -163,7 +163,7 @@ def sign(data, private_key_pem):
         )
         return base64.b64encode(signature).decode()
     except Exception as e:
-        raise HttpError(AuthMessages.SIGNATURE_FAILED, 401, e)
+        raise HttpException(AuthMessages.SIGNATURE_FAILED, 401, e)
     
     
 
@@ -186,7 +186,7 @@ def verify_signature(public_key_pem, signed_text_bs64):
             hashes.SHA256()
         )
     except Exception as e:
-        raise HttpError(AuthMessages.VERIFICATION_FAILED, 401, e)
+        raise HttpException(AuthMessages.VERIFICATION_FAILED, 401, e)
             
 def decode_jwt(token):
     try:
@@ -197,7 +197,7 @@ def decode_jwt(token):
             )
         return payload
     except jwt.ExpiredSignatureError:
-        raise HttpError(TokenMessages.EXPIRED, 401)
+        raise HttpException(TokenMessages.EXPIRED, 401)
     except jwt.InvalidTokenError:
-        raise HttpError(TokenMessages.INVALID, 401)
+        raise HttpException(TokenMessages.INVALID, 401)
     

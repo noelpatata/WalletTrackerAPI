@@ -34,6 +34,7 @@ class ExpenseCategoryMessages:
     DELETED = "ExpenseCategory deleted successfully"
     MODIFIED = "ExpenseCategory modified successfully"
 class ExpenseMessages:
+    NOT_FOUND = "Expense not found"
     FETCHED = "Expense fetched successfully"
     FETCHED_PLURAL = "Expenses fetched successfully"
     CREATED = "Expense created successfully"

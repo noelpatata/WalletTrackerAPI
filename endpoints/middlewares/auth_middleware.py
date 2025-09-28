@@ -1,12 +1,12 @@
 from functools import wraps
 from flask import request
-from utils.multitenant import get_tenant_session
-from utils.constants import Messages, AuthMessages, TokenMessages
-from utils.responseMaker import make_response
-from utils.cryptography import hybrid_decryption, decode_jwt, verify_signature
+from utils.Multitenant import get_tenant_session
+from utils.Constants import Messages, AuthMessages, TokenMessages
+from utils.ResponseMaker import make_response
+from utils.Cryptography import hybrid_decryption, decode_jwt, verify_signature
 from repositories.UserRepository import UserRepository
 from validators.UserValidator import validate_user
-from exceptions.HttpException import HttpError
+from exceptions.Http import HttpException
 
 def token_required(f):
     @wraps(f)
@@ -16,14 +16,14 @@ def token_required(f):
             auth_header = request.headers.get('Authorization')
 
             if not auth_header:
-                raise HttpError(AuthMessages.INVALID_HEADERS, 415)
+                raise HttpException(AuthMessages.INVALID_HEADERS, 415)
             
             if not auth_header.startswith("Bearer "):
-                raise HttpError(AuthMessages.INVALID_HEADERS, 415)
+                raise HttpException(AuthMessages.INVALID_HEADERS, 415)
             
             token = auth_header.split(" ")[1]
             if not token:
-                raise HttpError(TokenMessages.MISSING, 401)
+                raise HttpException(TokenMessages.MISSING, 401)
             
             payload = decode_jwt(token)
 
@@ -37,7 +37,7 @@ def token_required(f):
             kwargs['session'] = tenant_session
             kwargs['user'] = user
         
-        except HttpError as e:
+        except HttpException as e:
             return make_response(None, False, e.message, e.inner_exception), e.status_code
         except Exception as e:
             return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
@@ -61,7 +61,7 @@ def signed_header(f):
 
             return f(*args, **kwargs)
         
-        except HttpError as e:
+        except HttpException as e:
             return make_response(None, False, e.message, e.inner_exception), e.status_code
         except Exception as e:
             return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
@@ -92,7 +92,7 @@ def ciphered_body(f):
             
             return f(*args, **kwargs)
         
-        except HttpError as e:
+        except HttpException as e:
             return make_response(None, False, e.message, e.inner_exception), e.status_code
         
         except Exception as e:

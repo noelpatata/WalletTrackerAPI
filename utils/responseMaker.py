@@ -1,6 +1,6 @@
 from flask import jsonify
-from utils.logger import AppLogger
-from utils.constants import Messages
+from utils.Logger import AppLogger
+from utils.Constants import Messages
 import traceback
 
 class Response:

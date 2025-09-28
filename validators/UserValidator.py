@@ -1,6 +1,6 @@
-from utils.constants import UserMessages
-from exceptions.HttpException import HttpError
+from utils.Constants import UserMessages
+from exceptions.Http import HttpException
 
 def validate_user(user):
     if not user or not user.id:
-        raise HttpError(UserMessages.USER_NOT_FOUND, 404)
+        raise HttpException(UserMessages.USER_NOT_FOUND, 404)

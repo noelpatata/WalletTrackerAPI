@@ -1,6 +1,6 @@
 import base64
 from config import SECRET
-from utils.cryptography import sign
+from utils.Cryptography import sign
 
 with open("testing/private_key.pem", "rb") as f:
     private_key_bytes = f.read()

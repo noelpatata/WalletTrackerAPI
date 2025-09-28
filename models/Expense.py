@@ -8,4 +8,4 @@ class Expense(db.Model, BaseRepository):
     price = db.Column(db.Float, nullable=False)
     expenseDate = db.Column(db.Date, nullable=False)
     category = db.Column(db.Integer, db.ForeignKey('ExpenseCategory.id'), nullable=False)
-    description = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.String(255), nullable=True)

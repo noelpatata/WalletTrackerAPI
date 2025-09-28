@@ -1,7 +1,7 @@
 import sys
 import base64
 import json
-from utils.cryptography import hybrid_encryption
+from utils.Cryptography import hybrid_encryption
 
 with open("testing/server_public_key.pem", "rb") as f:
     public_key_bytes = f.read()
