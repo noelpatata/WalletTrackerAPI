@@ -39,4 +39,5 @@ class ExpenseMessages:
     FETCHED_PLURAL = "Expenses fetched successfully"
     CREATED = "Expense created successfully"
     DELETED = "Expense deleted successfully"
+    DELETED_PLURAL = "Expenses deleted successfully"
     MODIFIED = "Expense modified successfully"

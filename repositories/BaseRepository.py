@@ -28,7 +28,6 @@ class BaseRepository:
             if hasattr(self, key):
                 if key != "id" and key != "username":
                     setattr(self, key, value)
-        self.save()
         
     @classmethod
     def get_all(cls):

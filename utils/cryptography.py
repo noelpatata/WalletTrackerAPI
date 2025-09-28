@@ -118,10 +118,10 @@ def hybrid_decryption(encrypted_data, private_key_str):
     except Exception as e:
         raise HttpException(AuthMessages.DECRYPTION_FAILED, 401, e)
 
-def hybrid_encryption(data, public_key_pem):
+def hybrid_encryption(dict, public_key_pem):
 
     try:
-
+        data = json.dumps(dict)
         aes_key = os.urandom(32)
         iv = os.urandom(12)
 
@@ -150,11 +150,11 @@ def hybrid_encryption(data, public_key_pem):
     except Exception as e:
         raise HttpException(AuthMessages.ENCRYPTION_FAILED, 401, e)
     
-def sign(data, private_key_pem):
+def sign(private_key_pem):
     try:
         private_key = serialization.load_pem_private_key(base64.b64decode(private_key_pem), password=None, backend=default_backend())
         signature = private_key.sign(
-            data.encode(),
+            SECRET.encode("utf-8"),
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
                 salt_length=32

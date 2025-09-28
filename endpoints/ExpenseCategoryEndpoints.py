@@ -1,5 +1,5 @@
 from flask import Blueprint
-from endpoints.middlewares.auth_middleware import cryptography_required, signature_required
+from endpoints.middlewares.auth_middleware import cryptography_required, signature_required, cipher_and_sign_response
 from utils.ResponseMaker import make_response
 from utils.Constants import Messages, ExpenseCategoryMessages
 from repositories.ExpenseCategoryRepository import ExpenseCategoryRepository
@@ -35,6 +35,7 @@ def get_by_id(user_id, session, user, decrypted_data):
 
 @expensecategory_bp.route('/ExpenseCategory/all', methods=['GET'])
 @signature_required
+@cipher_and_sign_response
 def get_all(user_id, session, user):
     try:  
         categories = ExpenseCategoryRepository.get_all(session)

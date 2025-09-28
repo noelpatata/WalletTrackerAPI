@@ -20,7 +20,7 @@ def get_by_id(user_id, session, user, decrypted_data):
 
         expense = ExpenseRepository.get_by_id(expenseId, session)
         if not expense:
-            return make_response(None, False, Messages.INVALID_REQUEST), 200
+            return make_response(None, False, ExpenseMessages.NOT_FOUND), 200
         
         response = make_response(expense, True, ExpenseMessages.FETCHED), 200
         session.remove()
@@ -89,7 +89,7 @@ def create_expense(user_id, session, user, decrypted_data):
 def delete_all(user_id, session, user):
     try:
         ExpenseRepository.delete_all(session)
-        response = make_response(None, True, ExpenseMessages.DELETED), 200
+        response = make_response(None, True, ExpenseMessages.DELETED_PLURAL), 200
         session.remove()
         return response
     except Exception as e:
@@ -102,7 +102,7 @@ def delete_by_id(user_id, session, user, decrypted_data):
         data = decrypted_data
         is_empty(data, ["id"])
 
-        expense_id = data("id")
+        expense_id = data.get("id")
         
         ExpenseRepository.delete_by_id(expense_id, session)
         
@@ -116,9 +116,9 @@ def delete_by_id(user_id, session, user, decrypted_data):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
 
-@expense_bp.route('/Expense/edit/', methods=['PATCH'])
+@expense_bp.route('/Expense/', methods=['PATCH'])
 @cryptography_required
-def edit(userId, session, user, decrypted_data):
+def edit(user_id, session, user, decrypted_data):
     try:
         data = decrypted_data
         is_empty(data, ["id"])
@@ -129,7 +129,7 @@ def edit(userId, session, user, decrypted_data):
             return make_response(None, False, ExpenseMessages.NOT_FOUND), 200    
 
         exp.edit(**data)
-        session.commit()
+        exp.save(session)
 
         response = make_response(exp, True, ExpenseMessages.MODIFIED), 200
         session.remove()
