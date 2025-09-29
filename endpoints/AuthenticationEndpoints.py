@@ -8,7 +8,7 @@ from utils.Multitenant import create_tenant_user_and_db
 from utils.ResponseMaker import make_response
 from repositories.UserRepository import UserRepository
 from models.User import User
-from endpoints.middlewares.auth_middleware import token_required
+from endpoints.middlewares.AuthMiddleware import token_required
 from exceptions.Http import HttpException
 from validators.FieldValidator import is_empty
 

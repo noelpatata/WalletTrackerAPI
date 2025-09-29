@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 from models.Expense import Expense
 from repositories.ExpenseRepository import ExpenseRepository
-from endpoints.middlewares.auth_middleware import cryptography_required, signature_required
+from endpoints.middlewares.AuthMiddleware import cryptography_required, signature_required
 from utils.ResponseMaker import make_response
 from utils.Constants import Messages, ExpenseMessages
 from exceptions.Http import HttpException
