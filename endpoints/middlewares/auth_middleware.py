@@ -118,7 +118,7 @@ def ciphered_body(f):
             
             decrypted_data = hybrid_decryption(encrypted_data, user_from_decorator.private_key)
             if not decrypted_data:
-                return make_response(None, False, AuthMessages.INVALID_REQUEST), 200
+                return make_response(None, False, Messages.INVALID_REQUEST), 200
         
             kwargs['decrypted_data'] = decrypted_data
             

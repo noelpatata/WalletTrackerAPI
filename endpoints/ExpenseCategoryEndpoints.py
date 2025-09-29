@@ -9,7 +9,7 @@ from validators.FieldValidator import is_empty
 
 expensecategory_bp = Blueprint('expensecategory', __name__)
 
-@expensecategory_bp.route('/ExpenseCategory/', methods=['GET'])
+@expensecategory_bp.route('/api/v1/ExpenseCategory/', methods=['GET'])
 @cryptography_required
 def get_by_id(user_id, session, user, decrypted_data):
     try:
@@ -33,7 +33,7 @@ def get_by_id(user_id, session, user, decrypted_data):
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
 
-@expensecategory_bp.route('/ExpenseCategory/all', methods=['GET'])
+@expensecategory_bp.route('/api/v1/ExpenseCategory/all', methods=['GET'])
 @signature_required
 @cipher_and_sign_response
 def get_all(user_id, session, user):
@@ -49,7 +49,7 @@ def get_all(user_id, session, user):
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
 
-@expensecategory_bp.route('/ExpenseCategory/', methods=['POST'])
+@expensecategory_bp.route('/api/v1/ExpenseCategory/', methods=['POST'])
 @cryptography_required
 def create_expense_category(user_id, session, user, decrypted_data):
     try:
@@ -72,7 +72,7 @@ def create_expense_category(user_id, session, user, decrypted_data):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
-@expensecategory_bp.route('/ExpenseCategory/', methods=['DELETE'])
+@expensecategory_bp.route('/api/v1/ExpenseCategory/', methods=['DELETE'])
 @cryptography_required
 def delete(user_id, session, user, decrypted_data):
     try:
@@ -91,7 +91,7 @@ def delete(user_id, session, user, decrypted_data):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
-@expensecategory_bp.route('/ExpenseCategory/', methods=['PATCH'])
+@expensecategory_bp.route('/api/v1/ExpenseCategory/', methods=['PATCH'])
 @cryptography_required
 def edit_name(user_id, session, user, decrypted_data):
     try:
@@ -103,7 +103,7 @@ def edit_name(user_id, session, user, decrypted_data):
         cat.setName(data.get('name'))
         cat.save(session)
 
-        return make_response(None, True, ExpenseCategoryMessages.MODIFIED), 200
+        return make_response(cat, True, ExpenseCategoryMessages.MODIFIED), 200
 
     except HttpException as e:
         return make_response(None, False, e.message, e.inner_exception), e.status_code

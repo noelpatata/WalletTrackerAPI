@@ -14,7 +14,7 @@ from validators.FieldValidator import is_empty
 
 auth_bp = Blueprint('authentication', __name__)
 
-@auth_bp.route("/login/", methods=['POST'])
+@auth_bp.route("/api/v1/login/", methods=['POST'])
 def login():
     try:
         auth = request.get_json()
@@ -37,7 +37,7 @@ def login():
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
-@auth_bp.route("/register/", methods=['POST'])
+@auth_bp.route("/api/v1/register/", methods=['POST'])
 def register():
     try:
         data = request.get_json()
@@ -75,7 +75,7 @@ def register():
     
 
 #TODO
-@auth_bp.route("/autoLogin/", methods=['POST'])
+@auth_bp.route("/api/v1/autoLogin/", methods=['POST'])
 def auto_login():
     try:
         data = request.get_json()
@@ -115,7 +115,7 @@ def auto_login():
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
 
-@auth_bp.route("/getUserServerPubKey/", methods=['GET'])
+@auth_bp.route("/api/v1/getUserServerPubKey/", methods=['GET'])
 @token_required
 def get_user_pub_key(user_id, session, user):
     try:
@@ -132,7 +132,7 @@ def get_user_pub_key(user_id, session, user):
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
 
-@auth_bp.route("/setUserClientPubKey/", methods=['POST'])
+@auth_bp.route("/api/v1/setUserClientPubKey/", methods=['POST'])
 @token_required
 def set_user_pub_key(user_id, session, user):
     try:

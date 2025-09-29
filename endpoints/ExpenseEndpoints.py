@@ -9,7 +9,7 @@ from validators.FieldValidator import is_empty
 
 expense_bp = Blueprint('expense', __name__)
 
-@expense_bp.route('/Expense/', methods=['GET'])
+@expense_bp.route('/api/v1/Expense/', methods=['GET'])
 @cryptography_required
 def get_by_id(user_id, session, user, decrypted_data):
     try:
@@ -33,7 +33,7 @@ def get_by_id(user_id, session, user, decrypted_data):
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
 
-@expense_bp.route('/Expense/category/', methods=['GET'])
+@expense_bp.route('/api/v1/Expense/category/', methods=['GET'])
 @cryptography_required
 def get_by_category(user_id, session, user, decrypted_data):
     try:
@@ -55,7 +55,7 @@ def get_by_category(user_id, session, user, decrypted_data):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
 
-@expense_bp.route('/Expense/', methods=['POST'])
+@expense_bp.route('/api/v1/Expense/', methods=['POST'])
 @cryptography_required
 def create_expense(user_id, session, user, decrypted_data):
     try:
@@ -84,7 +84,7 @@ def create_expense(user_id, session, user, decrypted_data):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
-@expense_bp.route('/Expense/all/', methods=['DELETE'])
+@expense_bp.route('/api/v1/Expense/all/', methods=['DELETE'])
 @signature_required
 def delete_all(user_id, session, user):
     try:
@@ -95,7 +95,7 @@ def delete_all(user_id, session, user):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
-@expense_bp.route('/Expense/', methods=['DELETE'])
+@expense_bp.route('/api/v1/Expense/', methods=['DELETE'])
 @cryptography_required
 def delete_by_id(user_id, session, user, decrypted_data):
     try:
@@ -116,7 +116,7 @@ def delete_by_id(user_id, session, user, decrypted_data):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
 
-@expense_bp.route('/Expense/', methods=['PATCH'])
+@expense_bp.route('/api/v1/Expense/', methods=['PATCH'])
 @cryptography_required
 def edit(user_id, session, user, decrypted_data):
     try:
