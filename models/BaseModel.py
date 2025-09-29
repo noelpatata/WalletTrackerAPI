@@ -1,7 +1,7 @@
 from datetime import date
 from db import db
 
-class BaseRepository:
+class BaseModel:
 
     def save(self, session=None):
         if session is None:

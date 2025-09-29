@@ -1,7 +1,7 @@
 from db import db
-from repositories.BaseRepository import BaseRepository
+from models.BaseModel import BaseModel
 
-class ExpenseCategory(db.Model, BaseRepository):
+class ExpenseCategory(db.Model, BaseModel):
     __tablename__ = 'ExpenseCategory'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

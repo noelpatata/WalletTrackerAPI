@@ -1,7 +1,7 @@
 from db import db
-from repositories.BaseRepository import BaseRepository
+from models.BaseModel import BaseModel
 
-class Expense(db.Model, BaseRepository):
+class Expense(db.Model, BaseModel):
     __tablename__ = 'Expense'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
