@@ -29,7 +29,7 @@ def create_app():
     AppLogger.configure("app.log")
 
     if not (os.path.exists("private_key.pem") and os.path.exists("public_key.pem")):
-    generate_keys_file()
+        generate_keys_file()
         
     app.config['PRIVATE_KEY'] = open('private_key.pem', 'r').read()
     app.config['PUBLIC_KEY'] = open('public_key.pem', 'r').read()
