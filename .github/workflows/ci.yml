@@ -1,38 +1,22 @@
-name: ci
+name: CI
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      db:
-        image: mysql:8.0
-        ports:
-          - 3306:3306
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: wallettracker
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Cleanup previous Docker containers
         run: docker compose down --volumes --remove-orphans || true
-        
+
       - name: Create .env file from GitHub Secrets
         run: |
           cat <<EOF > .env
@@ -40,28 +24,27 @@ jobs:
           MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
           WALLET_TRACKER_SECRET=${{ secrets.WALLET_TRACKER_SECRET }}
           WALLET_TRACKER_DB_USER=${{ secrets.WALLET_TRACKER_DB_USER }}
-          WALLET_TRACKER_DB_HOST=${{ secrets.WALLET_TRACKER_DB_HOST }}
+          WALLET_TRACKER_DB_HOST=db
           FLASK_ENV=test
           EOF
 
-      - name: Set up Docker Compose
-        run: |
-          docker compose up -d --build
-          docker ps -a
+      - name: Build and start Docker services
+        run: docker compose up -d --build
 
       - name: Wait for DB to be healthy
         run: |
           echo "Waiting for database to be ready..."
           for i in {1..30}; do
-            if docker exec $(docker ps -qf "name=db") mysqladmin ping -h localhost -uroot -proot --silent; then
+            if docker compose exec db mysqladmin ping -h db -uroot -p"${{ secrets.MYSQL_ROOT_PASSWORD }}" --silent; then
               echo "Database is up!"
               break
             fi
             sleep 2
           done
 
-      - name: Run tests inside app container
-        run: |
-          docker exec wallettracker pytest -v
+      - name: Run Pytest
+        run: docker compose exec app pytest -v
 
-
+      - name: Stop Docker services
+        if: always()
+        run: docker compose down --volumes
