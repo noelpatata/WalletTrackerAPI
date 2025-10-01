@@ -49,7 +49,7 @@ jobs:
 
       # 6️⃣ Run tests inside app container
       - name: Run Pytest
-        run: docker compose exec app pytest -v
+        run: docker compose exec -T app pytest -v
 
       # 7️⃣ Tear down after tests
       - name: Stop Docker services
