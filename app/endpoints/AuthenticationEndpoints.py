@@ -1,6 +1,6 @@
-import datetime
 import base64
 import jwt
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, current_app
 from utils.Cryptography import generate_private_key, generate_private_key_string, generate_public_key_string, verify_signature
 from utils.Constants import  Messages, AuthMessages, UserMessages
@@ -22,16 +22,16 @@ def login():
             user = UserRepository.get_by_username(auth.get('username'))
             
             if user is None:
-                return make_response(None, False, Messages.INVALID_REQUEST), 200
+                return make_response(None, False, UserMessages.USER_NOT_FOUND), 401
             if(UserRepository.check_password(user, auth.get('password'))):
-                payload = {'user': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)}
+                payload = {'user': user.id, 'exp': datetime.now(timezone.utc) + timedelta(hours=2)}
                 token = jwt.encode(
                     payload,
                     current_app.config['PRIVATE_KEY'],
                     algorithm='RS256')
                 return make_response({'token': token}, True, AuthMessages.LOGGED_IN), 200
             else:
-                return make_response(None, False, UserMessages.USER_NOT_FOUND), 404
+                return make_response(None, False, UserMessages.USER_NOT_FOUND), 401
 
         return make_response(None, False, Messages.INVALID_REQUEST), 200
     except Exception as e:
@@ -71,48 +71,6 @@ def register():
         return make_response(None, False, e.message, e.inner_exception), e.status_code
     except Exception as e:
         created_user.delete()
-        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
-    
-
-#TODO
-@auth_bp.route("/api/v1/autoLogin/", methods=['POST'])
-def auto_login():
-    try:
-        data = request.get_json()
-        if not data or 'userId' not in data or 'ciphered' not in data:
-            return make_response(None, False, Messages.INVALID_REQUEST), 200
-
-        user_id = data.get('userId')
-        ciphered_text_bs64 = data.get('ciphered')
-
-        if not user_id or not ciphered_text_bs64:
-            return make_response(None, False, Messages.INVALID_REQUEST), 200
-
-        user = User.query.filter_by(id=user_id).first()
-        if not user:
-            return make_response(None, False, Messages.INVALID_REQUEST), 200
-
-        public_key_pem = base64.b64decode(user.client_public_key)
-        
-        if not public_key_pem:
-            return make_response(None, False, Messages.INVALID_REQUEST), 200
-
-        verified = verify_signature(public_key_pem, ciphered_text_bs64)
-        if(not verified):
-            return make_response(None, False, AuthMessages.INVALID_HEADERS), 415
-
-        payload = {
-            'user': user.id,
-            'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
-        }
-        token = jwt.encode(
-            payload,
-            current_app.config['PRIVATE_KEY'],
-            algorithm='RS256'
-        )
-
-        return make_response({'userId': user.id, 'token': token}, True, AuthMessages.LOGGED_IN), 200
-    except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
 
 @auth_bp.route("/api/v1/getUserServerPubKey/", methods=['GET'])

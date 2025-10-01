@@ -6,7 +6,7 @@ class User(db.Model, BaseModel):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(255), nullable=False, unique=True)
-    password = db.Column(db.String(255), nullable=True)
+    password = db.Column(db.String(255), nullable=False)
     salt = db.Column(db.String(64), nullable=False)
     private_key = db.Column(db.String, nullable=False)
     public_key = db.Column(db.String, nullable=False)

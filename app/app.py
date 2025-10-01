@@ -7,23 +7,31 @@ from db import db
 from config import MYSQLUSERNAME, MYSQLPASSWORD, MYSQLHOST, MYSQLDBNAME
 from utils.Cryptography import generate_keys_file
 
-app = Flask(__name__)
+def create_app(test_config=None):
 
-if not (os.path.exists("private_key.pem") and os.path.exists("public_key.pem")):
-    generate_keys_file()
-    
-app.config['PRIVATE_KEY'] = open('private_key.pem', 'r').read()
-app.config['PUBLIC_KEY'] = open('public_key.pem', 'r').read()
+    app = Flask(__name__)
 
-connectionString = f'mysql://{MYSQLUSERNAME}:{MYSQLPASSWORD}@{MYSQLHOST}/{MYSQLDBNAME}'
-app.config['SQLALCHEMY_DATABASE_URI'] = connectionString
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    if not (os.path.exists("private_key.pem") and os.path.exists("public_key.pem")):
+        generate_keys_file()
+        
+    app.config['PRIVATE_KEY'] = open('private_key.pem', 'r').read()
+    app.config['PUBLIC_KEY'] = open('public_key.pem', 'r').read()
 
+    if test_config:
+        app.config.update(test_config)
+    else:
+        connectionString = f'mysql://{MYSQLUSERNAME}:{MYSQLPASSWORD}@{MYSQLHOST}/{MYSQLDBNAME}'
+        app.config['SQLALCHEMY_DATABASE_URI'] = connectionString
 
-db.init_app(app)
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(expense_bp)
+    app.register_blueprint(expensecategory_bp)
 
-app.register_blueprint(auth_bp)
-app.register_blueprint(expense_bp)
-app.register_blueprint(expensecategory_bp)
+    return app
+
+app = create_app()
+
 
     

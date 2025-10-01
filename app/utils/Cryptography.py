@@ -8,6 +8,8 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
+import hashlib
+import binascii
 from config import SECRET
 from utils.Constants import TokenMessages, AuthMessages
 from utils.ResponseMaker import make_response
@@ -200,4 +202,21 @@ def decode_jwt(token):
         raise HttpException(TokenMessages.EXPIRED, 401)
     except jwt.InvalidTokenError:
         raise HttpException(TokenMessages.INVALID, 401)
+
+def hash_password(password: str, salt: str = None) -> tuple[str, str]:
+    if salt is not None:
+        salt_bytes = binascii.unhexlify(salt)
+    else:
+        salt_bytes = os.urandom(32)
+
+    hashed_bytes = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt_bytes,
+        100000
+    )
+
+    hashed_password = binascii.hexlify(hashed_bytes).decode("utf-8")
+    salt_hex = binascii.hexlify(salt_bytes).decode("utf-8")
+    return hashed_password, salt_hex
     

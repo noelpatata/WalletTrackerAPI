@@ -4,8 +4,11 @@ PyJWT
 mysqlclient
 cryptography
 requests
+
+waitress; sys_platform == "win32"
+uwsgi; sys_platform != "win32"
+
 pytest
 pytest-flask
 pytest-mock
-waitress; sys_platform == "win32"
-uwsgi; sys_platform != "win32"
+pytest-env

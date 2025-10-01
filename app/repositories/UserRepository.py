@@ -1,6 +1,7 @@
 import os, hashlib, binascii
 from db import db
 from models.User import User
+from utils.Cryptography import hash_password
 
 class UserRepository:
     
@@ -18,23 +19,14 @@ class UserRepository:
 
     @staticmethod
     def create_with_password(user, password):
-        """Factory: creates user with hashed password."""
-        salt = os.urandom(32)
-        hashed_password = hashlib.pbkdf2_hmac(
-            "sha256", password.encode("utf-8"), salt, 100000
-        )
-
-        user.password = binascii.hexlify(hashed_password).decode('utf-8') 
-        user.salt = binascii.hexlify(salt).decode("utf-8")
+        hex_hashed_password, hex_salt = hash_password(password) 
+        user.password = hex_hashed_password
+        user.salt = hex_salt
         db.session.add(user)
         db.session.commit()
         return user
 
     @staticmethod
     def check_password(user: User, password: str) -> bool:
-        """Verify password against stored hash."""
-        salt = binascii.unhexlify(user.salt.encode("utf-8"))
-        hashed_password = hashlib.pbkdf2_hmac(
-            "sha256", password.encode("utf-8"), salt, 100000
-        )
-        return user.password == binascii.hexlify(hashed_password).decode("utf-8")
+        hex_hashed_password, hex_salt = hash_password(password, user.salt)
+        return user.password == hex_hashed_password
