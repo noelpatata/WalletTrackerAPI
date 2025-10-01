@@ -36,12 +36,12 @@ def make_response(data=None, success=True, message="", exception=None, debug=Fal
                     log_message += f" [ INNER EXCEPTION ]: {exc_message}\n{stack_trace}"
                 else:
                     log_message += f" [ INNER EXCEPTION ]: {exc_message}"
-                AppLogger._logger.error(log_message, exc_info=exception)
+                AppLogger.error(log_message, exc_info=exception)
             else:
                 AppLogger.error(log_message)
         return jsonify(Response(data if data is not None else None, success, message).to_dict())
     except Exception as e:
-        AppLogger._logger.error(str(e), exc_info=e)
+        AppLogger.error(str(e), exc_info=e)
         return jsonify({
             "success": False,
             "message": Messages.INTERNAL_ERROR,

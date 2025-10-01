@@ -2,6 +2,7 @@ import os
 import base64
 import json
 import jwt
+from pathlib import Path
 from flask import current_app
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -52,10 +53,10 @@ def generate_public_key_string(private_key):
         raise HttpException(AuthMessages.PUBLIC_KEY_FAILED, 401, e)
     
 
-def generate_keys_file(relativeFolder=""):
-
+def generate_keys_file(folder=""):
     try:
-        destFolder = relativeFolder+"\\" if len(relativeFolder) > 0 else ""
+        folder_path = Path(folder)
+        folder_path.mkdir(parents=True, exist_ok=True)
 
         private_key = rsa.generate_private_key(
             public_exponent=65537,
@@ -63,7 +64,10 @@ def generate_keys_file(relativeFolder=""):
             backend=default_backend()
         )
 
-        with open(destFolder+"private_key.pem", "wb") as private_file:
+        private_path = folder_path / "private_key.pem"
+        public_path = folder_path / "public_key.pem"
+
+        with open(private_path, "wb") as private_file:
             private_file.write(
                 private_key.private_bytes(
                     encoding=serialization.Encoding.PEM,
@@ -71,10 +75,9 @@ def generate_keys_file(relativeFolder=""):
                     encryption_algorithm=serialization.NoEncryption()
                 )
             )
-        
-        public_key = private_key.public_key()
 
-        with open(destFolder+"public_key.pem", "wb") as public_file:
+        public_key = private_key.public_key()
+        with open(public_path, "wb") as public_file:
             public_file.write(
                 public_key.public_bytes(
                     encoding=serialization.Encoding.PEM,
@@ -82,8 +85,7 @@ def generate_keys_file(relativeFolder=""):
                 )
             )
     except Exception as e:
-        raise HttpException(AuthMessages.PAIRED_KEYS_FAILED, 401, e)
-    
+        raise Exception(f"Failed to generate keys: {e}")
     
     
 
