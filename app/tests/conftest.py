@@ -1,5 +1,5 @@
 import pytest
-from app import create_app, db
+from app import create_app_test, db
 from models.User import User
 from utils.Cryptography import hash_password, generate_keys_file
 
@@ -25,7 +25,7 @@ def app(keys, tmp_path):
         "TESTING": True,
     }
 
-    app = create_app(test_config)
+    app = create_app_test(test_config)
 
     with app.app_context():
         from models.User import User
