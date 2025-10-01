@@ -12,7 +12,6 @@ def create_app_test(test_config=None):
     app = Flask(__name__)
 
     app.config.update(test_config)
-    AppLogger.configure()
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     

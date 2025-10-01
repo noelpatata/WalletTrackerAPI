@@ -6,17 +6,19 @@ class AppLogger:
     _logger = None
 
     @staticmethod
-    def configure(log_file: str = "app.log"):
-        os.makedirs(os.path.dirname(log_file), exist_ok=True) if os.path.dirname(log_file) else None
+    def configure(log_file: str = None):
+        handlers = [logging.StreamHandler(sys.stdout)]
+
+        if log_file:
+            os.makedirs(os.path.dirname(log_file), exist_ok=True) if os.path.dirname(log_file) else None
+            handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
 
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-            handlers=[
-                logging.StreamHandler(sys.stdout),
-                logging.FileHandler(log_file, encoding="utf-8")
-            ]
+            handlers=handlers
         )
+
         AppLogger._logger = logging.getLogger("AppLogger")
 
     @staticmethod

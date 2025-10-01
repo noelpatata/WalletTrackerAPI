@@ -2,6 +2,11 @@ import pytest
 from app import create_app_test, db
 from models.User import User
 from utils.Cryptography import hash_password, generate_keys_file
+from utils.Logger import AppLogger
+
+@pytest.fixture(scope="session", autouse=True)
+def configure_logger():
+    AppLogger.configure(log_file=None)
 
 @pytest.fixture
 def keys(tmp_path):
@@ -24,6 +29,8 @@ def app(keys, tmp_path):
         "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_path}",
         "TESTING": True,
     }
+
+    AppLogger.configure()
 
     app = create_app_test(test_config)
 
