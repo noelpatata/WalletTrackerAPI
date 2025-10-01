@@ -11,15 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Clean up any previous containers
       - name: Cleanup previous Docker containers
         run: docker compose down --volumes --remove-orphans || true
 
-      # 3️⃣ Create .env file from GitHub Secrets
       - name: Create .env file from GitHub Secrets
         run: |
           cat <<EOF > .env
@@ -31,11 +28,9 @@ jobs:
           FLASK_ENV=test
           EOF
 
-      # 4️⃣ Build and start Docker Compose services
       - name: Build and start Docker services
         run: docker compose up -d --build
 
-      # 5️⃣ Wait for DB to be ready
       - name: Wait for DB to be healthy
         run: |
           echo "Waiting for database to be ready..."
@@ -47,11 +42,9 @@ jobs:
             sleep 2
           done
 
-      # 6️⃣ Run tests inside app container
       - name: Run Pytest
         run: docker compose exec -T app pytest -v
 
-      # 7️⃣ Tear down after tests
       - name: Stop Docker services
         if: always()
         run: docker compose down --volumes
