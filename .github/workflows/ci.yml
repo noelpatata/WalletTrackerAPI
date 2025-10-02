@@ -14,7 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Cleanup previous Docker containers
+      - name: Cleanup previous Docker
         run: docker compose down --volumes --remove-orphans || true
 
       - name: Create .env file from GitHub Secrets
