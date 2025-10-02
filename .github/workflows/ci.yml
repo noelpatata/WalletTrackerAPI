@@ -8,18 +8,15 @@ on:
 
 jobs:
   test:
-    name: testing 
+    name: CI
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Cleanup previous Docker
-        run: docker compose down --volumes --remove-orphans || true
+      - run: docker compose down --volumes --remove-orphans || true
 
-      - name: Create .env file from GitHub Secrets
-        run: |
+      - run: |
           cat <<EOF > .env
           MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
@@ -29,11 +26,9 @@ jobs:
           FLASK_ENV=test
           EOF
 
-      - name: Build and start Docker services
-        run: docker compose up -d --build
+      - run: docker compose up -d --build
 
-      - name: Wait for DB to be healthy
-        run: |
+      - run: |
           echo "Waiting for database to be ready..."
           for i in {1..30}; do
             if docker compose exec db mysqladmin ping -h db -uroot -p"${{ secrets.MYSQL_ROOT_PASSWORD }}" --silent; then
@@ -43,10 +38,7 @@ jobs:
             sleep 2
           done
 
-      - name: Run Pytest
-        run: docker compose exec -T app pytest -v
+      - run: docker compose exec -T app pytest -v
 
-      - name: Stop Docker services
-        if: always()
+      - if: always()
         run: docker compose down --volumes
-
