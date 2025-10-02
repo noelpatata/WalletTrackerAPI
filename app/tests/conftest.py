@@ -1,5 +1,5 @@
 import pytest
-from app import create_ap, db
+from app import create_app, db
 from utils.Cryptography import hash_password, generate_keys_file
 from utils.Logger import AppLogger
 
