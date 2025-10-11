@@ -1,4 +1,4 @@
-name: CI
+name: CICD
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
@@ -41,3 +41,14 @@ jobs:
 
       - if: always()
         run: docker compose down --volumes
+        
+  trigger-cd:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Jenkins Hello World job
+        env:
+          JENKINS_HOSTNAME: ${{ secrets.JENKINS_HOSTNAME }}
+          JENKINS_SECRET: ${{ secrets.JENKINS_SECRET }}
+        run: |
+          curl -X POST "$JENKINS_HOSTNAME/job/wallettrackerci?secret=$JENKINS_SECRET"
