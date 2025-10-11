@@ -51,4 +51,6 @@ jobs:
           JENKINS_HOSTNAME: ${{ secrets.JENKINS_HOSTNAME }}
           JENKINS_SECRET: ${{ secrets.JENKINS_SECRET }}
         run: |
-          curl -X POST "$JENKINS_HOSTNAME/job/wallettrackerci?secret=$JENKINS_SECRET"
+          curl -X POST "$JENKINS_HOSTNAME/job/wallettrackerci/build" \
+          -H "Authorization: Bearer $JENKINS_SECRET"
+
