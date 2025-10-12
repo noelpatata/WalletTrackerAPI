@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Jenkins Hello World job
+      - name: Trigger Jenkins CD
         env:
           JENKINS_HOSTNAME: ${{ secrets.JENKINS_HOSTNAME }}
           JENKINS_WALLET_TRACKER_CD_SECRET: ${{ secrets.JENKINS_WALLET_TRACKER_CD_SECRET }}
@@ -55,5 +55,5 @@ jobs:
         run: |
           curl -u "$JENKINS_USERNAME:$JENKINS_API_TOKEN" \
           "https://$JENKINS_HOSTNAME/generic-webhook-trigger/invoke" \
-          -H 'Authorization: Bearer $JENKINS_WALLET_TRACKER_CD_SECRET'
+          -H "Authorization: Bearer $JENKINS_WALLET_TRACKER_CD_SECRET"
 
