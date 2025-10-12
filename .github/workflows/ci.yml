@@ -55,5 +55,5 @@ jobs:
         run: |
           curl -u "$JENKINS_USERNAME:$JENKINS_API_TOKEN" \
           "https://$JENKINS_HOSTNAME/generic-webhook-trigger/invoke" \
-          -H 'Authorization: Bearer $JENKINS_WALLET_TRACKER_CD_SECRET'
+          -H "Authorization: Bearer $JENKINS_WALLET_TRACKER_CD_SECRET"
 
