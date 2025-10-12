@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Jenkins CD
+      - name: Trigger Jenkins Wallet Tracker CD
         env:
           JENKINS_HOSTNAME: ${{ secrets.JENKINS_HOSTNAME }}
           JENKINS_WALLET_TRACKER_CD_SECRET: ${{ secrets.JENKINS_WALLET_TRACKER_CD_SECRET }}
