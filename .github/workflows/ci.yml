@@ -49,8 +49,11 @@ jobs:
       - name: Trigger Jenkins Hello World job
         env:
           JENKINS_HOSTNAME: ${{ secrets.JENKINS_HOSTNAME }}
-          JENKINS_SECRET: ${{ secrets.JENKINS_SECRET }}
+          JENKINS_WALLET_TRACKER_CD_SECRET: ${{ secrets.JENKINS_WALLET_TRACKER_CD_SECRET }}
+          JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
+          JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
         run: |
-          curl -X POST "$JENKINS_HOSTNAME/job/wallettrackerci/build" \
-          -H "Authorization: Bearer $JENKINS_SECRET"
+          curl -u "$JENKINS_USERNAME:$JENKINS_API_TOKEN" \
+          "https://$JENKINS_HOSTNAME/generic-webhook-trigger/invoke" \
+          -H 'Authorization: Bearer $JENKINS_WALLET_TRACKER_CD_SECRET'
 
