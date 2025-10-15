@@ -9,7 +9,7 @@ from validators.FieldValidator import is_empty
 
 expensecategory_bp = Blueprint('expensecategory', __name__)
 
-@expensecategory_bp.route('/api/v1/ExpenseCategory/', methods=['GET'])
+@expensecategory_bp.route('/api/v1/ExpenseCategory/id', methods=['POST'])
 @cryptography_required
 def get_by_id(user_id, session, user, decrypted_data):
     try:
