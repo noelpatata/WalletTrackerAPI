@@ -89,7 +89,7 @@ def cipher_and_sign_response(f):
             encrypted_json = hybrid_encryption(response_dict, user.client_public_key)
 
             encrypted_response = make_response(
-                {"signature": signature, "encrypted_data": encrypted_json}, True, "Success"
+                {"signature": signature, "encrypted_data": encrypted_json}, True, AuthMessages.CIPHERED_RESPONSE_SUCCESSFULLY
             ), status_code
 
             return encrypted_response
@@ -100,7 +100,6 @@ def cipher_and_sign_response(f):
             return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
 
     return wrapper
-
 
 def ciphered_body(f):
     @wraps(f)
