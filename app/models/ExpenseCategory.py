@@ -15,7 +15,7 @@ class ExpenseCategory(db.Model, BaseModel):
     def setName(self, name):
         self.name = name
 
-    def toJsonDict(self):
-        result = super().toJsonDict()
+    def to_json_dict(self):
+        result = super().to_json_dict()
         result['total'] = self.total
         return result

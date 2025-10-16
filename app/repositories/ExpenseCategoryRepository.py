@@ -40,6 +40,7 @@ class ExpenseCategoryRepository:
                 .scalar()
             ) or 0.0
             category.setTotal(total)
+        
 
         return categories
 

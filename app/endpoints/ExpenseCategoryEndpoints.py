@@ -74,7 +74,7 @@ def create_expense_category(user_id, session, user, decrypted_data):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
-@expensecategory_bp.route('/api/v1/ExpenseCategory/', methods=['DELETE'])
+@expensecategory_bp.route('/api/v1/ExpenseCategory/delete', methods=['POST'])
 @cryptography_required
 def delete(user_id, session, user, decrypted_data):
     try:
