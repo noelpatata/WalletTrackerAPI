@@ -98,7 +98,7 @@ def delete_all(user_id, session, user):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
-@expense_bp.route('/api/v1/Expense/', methods=['DELETE'])
+@expense_bp.route('/api/v1/Expense/delete', methods=['POST'])
 @cryptography_required
 def delete_by_id(user_id, session, user, decrypted_data):
     try:
