@@ -9,6 +9,7 @@ class TokenMessages:
     EXPIRED = "Expired token"
     INVALID = "Invalid token"
 class AuthMessages:
+    CIPHERED_RESPONSE_SUCCESSFULLY = "Ciphered message successfully"
     AUTH_ERROR = "Authorization error"
     LOGGED_IN = "Logged in successfully"
     FETCHED_SERVER_PUB_KEY = "Fetched server's public key successfully"

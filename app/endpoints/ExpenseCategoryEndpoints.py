@@ -11,6 +11,7 @@ expensecategory_bp = Blueprint('expensecategory', __name__)
 
 @expensecategory_bp.route('/api/v1/ExpenseCategory/id', methods=['POST'])
 @cryptography_required
+@cipher_and_sign_response
 def get_by_id(user_id, session, user, decrypted_data):
     try:
         data = decrypted_data
@@ -51,6 +52,7 @@ def get_all(user_id, session, user):
 
 @expensecategory_bp.route('/api/v1/ExpenseCategory/', methods=['POST'])
 @cryptography_required
+@cipher_and_sign_response
 def create_expense_category(user_id, session, user, decrypted_data):
     try:
         data = decrypted_data
@@ -93,6 +95,7 @@ def delete(user_id, session, user, decrypted_data):
     
 @expensecategory_bp.route('/api/v1/ExpenseCategory/', methods=['PATCH'])
 @cryptography_required
+@cipher_and_sign_response
 def edit_name(user_id, session, user, decrypted_data):
     try:
         data = decrypted_data

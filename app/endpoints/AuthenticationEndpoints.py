@@ -2,7 +2,7 @@ import base64
 import jwt
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, current_app
-from utils.Cryptography import generate_private_key, generate_private_key_string, generate_public_key_string, verify_signature
+from utils.Cryptography import generate_private_key, generate_private_key_string, generate_public_key_string
 from utils.Constants import  Messages, AuthMessages, UserMessages
 from utils.Multitenant import create_tenant_user_and_db
 from utils.ResponseMaker import make_response

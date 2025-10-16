@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 from models.Expense import Expense
 from repositories.ExpenseRepository import ExpenseRepository
-from endpoints.middlewares.AuthMiddleware import cryptography_required, signature_required
+from endpoints.middlewares.AuthMiddleware import cryptography_required, signature_required, cipher_and_sign_response
 from utils.ResponseMaker import make_response
 from utils.Constants import Messages, ExpenseMessages
 from exceptions.Http import HttpException
@@ -11,6 +11,7 @@ expense_bp = Blueprint('expense', __name__)
 
 @expense_bp.route('/api/v1/Expense/id', methods=['POST'])
 @cryptography_required
+@cipher_and_sign_response
 def get_by_id(user_id, session, user, decrypted_data):
     try:
         data = decrypted_data
@@ -33,8 +34,9 @@ def get_by_id(user_id, session, user, decrypted_data):
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
 
-@expense_bp.route('/api/v1/Expense/category/', methods=['GET'])
+@expense_bp.route('/api/v1/Expense/category/', methods=['POST'])
 @cryptography_required
+@cipher_and_sign_response
 def get_by_category(user_id, session, user, decrypted_data):
     try:
         data = decrypted_data
@@ -57,6 +59,7 @@ def get_by_category(user_id, session, user, decrypted_data):
 
 @expense_bp.route('/api/v1/Expense/', methods=['POST'])
 @cryptography_required
+@cipher_and_sign_response
 def create_expense(user_id, session, user, decrypted_data):
     try:
         data = decrypted_data
@@ -118,6 +121,7 @@ def delete_by_id(user_id, session, user, decrypted_data):
 
 @expense_bp.route('/api/v1/Expense/', methods=['PATCH'])
 @cryptography_required
+@cipher_and_sign_response
 def edit(user_id, session, user, decrypted_data):
     try:
         data = decrypted_data

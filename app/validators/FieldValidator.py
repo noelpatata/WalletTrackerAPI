@@ -7,4 +7,4 @@ def is_empty(data, names):
 
     for name in names:
         if not data.get(name):
-            raise HttpException(Messages.INVALID_REQUEST, 404)
+            raise HttpException(Messages.INVALID_REQUEST, 400)
