@@ -3,6 +3,7 @@ from flask import Flask
 from endpoints.ExpenseEndpoints import expense_bp 
 from endpoints.ExpenseCategoryEndpoints import expensecategory_bp 
 from endpoints.AuthenticationEndpoints import auth_bp
+from endpoints.HealthEndpoints import health_bp
 from db import db
 from config import MYSQLUSERNAME, MYSQLPASSWORD, MYSQLHOST, MYSQLDBNAME
 from utils.Cryptography import generate_keys_file
@@ -19,6 +20,7 @@ def create_app_test(test_config=None):
     app.register_blueprint(auth_bp)
     app.register_blueprint(expense_bp)
     app.register_blueprint(expensecategory_bp)
+    app.register_blueprint(health_bp)
 
     return app
 
@@ -41,6 +43,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(expense_bp)
     app.register_blueprint(expensecategory_bp)
+    app.register_blueprint(health_bp)
 
     return app
 

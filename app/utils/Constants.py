@@ -1,4 +1,5 @@
 class Messages:
+    SUCCESS = "Success"
     INTERNAL_ERROR = "Internal server error"
     INVALID_REQUEST = "Invalid request"
 class UserMessages:
