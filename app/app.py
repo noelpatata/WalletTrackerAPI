@@ -27,7 +27,8 @@ def create_app_test(test_config=None):
 def create_app():
 
     app = Flask(__name__)
-    AppLogger.configure("app.log")
+    log_path = os.path.join(os.path.dirname(__file__), "logs", "app.log")
+    AppLogger.configure(log_path)
 
     if not (os.path.exists("private_key.pem") and os.path.exists("public_key.pem")):
         generate_keys_file()
