@@ -40,7 +40,7 @@ def login():
 @auth_bp.route("/api/v1/register/", methods=['POST'])
 def register():
     try:
-        if not current_app.config.get['ENABLE_REGISTER']:
+        if not current_app.config['ENABLE_REGISTER']:
             return make_response(None, False, Messages.INVALID_REQUEST), 403
             
         data = request.get_json()
