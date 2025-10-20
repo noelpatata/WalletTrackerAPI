@@ -1,7 +1,7 @@
 services:
   db:
     build:
-      context: ./mysql
+      context: ./mysqlhttps
       dockerfile: Dockerfile
     env_file:
       - .env

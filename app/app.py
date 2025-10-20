@@ -5,7 +5,7 @@ from endpoints.ExpenseCategoryEndpoints import expensecategory_bp
 from endpoints.AuthenticationEndpoints import auth_bp
 from endpoints.HealthEndpoints import health_bp
 from db import db
-from config import MYSQLUSERNAME, MYSQLPASSWORD, MYSQLHOST, MYSQLDBNAME
+from config import MYSQLUSERNAME, MYSQLPASSWORD, MYSQLHOST, ENABLE_REGISTER
 from utils.Cryptography import generate_keys_file
 from utils.Logger import AppLogger
 
@@ -32,7 +32,9 @@ def create_app():
 
     if not (os.path.exists("private_key.pem") and os.path.exists("public_key.pem")):
         generate_keys_file()
-        
+    
+    enable_register = ENABLE_REGISTER.lower() == "true"
+    app.config['ENABLE_REGISTER'] = enable_register
     app.config['PRIVATE_KEY'] = open('private_key.pem', 'r').read()
     app.config['PUBLIC_KEY'] = open('public_key.pem', 'r').read()
     connectionString = f'mysql://{MYSQLUSERNAME}:{MYSQLPASSWORD}@{MYSQLHOST}/{MYSQLDBNAME}'
