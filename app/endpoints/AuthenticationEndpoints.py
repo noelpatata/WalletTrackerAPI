@@ -37,42 +37,46 @@ def login():
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
-if current_app.config.get('ENABLE_REGISTER', False):
-    @auth_bp.route("/api/v1/register/", methods=['POST'])
-    def register():
-        try:
-            data = request.get_json()
-            if not data:
-                return make_response(None, False, Messages.INVALID_REQUEST), 200
-            is_empty(data, ["username", "password"])
+@auth_bp.route("/api/v1/register/", methods=['POST'])
+def register():
+    try:
+        if not current_app.config.get['ENABLE_REGISTER']:
+            return make_response(None, False, Messages.INVALID_REQUEST), 403
             
-            new_username = data.get('username')
-            password = data.get('password')
+        data = request.get_json()
+        if not data:
+            return make_response(None, False, Messages.INVALID_REQUEST), 200
+        is_empty(data, ["username", "password"])
             
-            if UserRepository.exists(new_username):
-                return make_response(None, False, AuthMessages.ALREADY_EXISTS), 200
+        new_username = data.get('username')
+        password = data.get('password')
             
-            private_key = generate_private_key() 
-            private_keystring = generate_private_key_string(private_key)
-            public_keystring = generate_public_key_string(private_key)
+        if UserRepository.exists(new_username):
+            return make_response(None, False, AuthMessages.ALREADY_EXISTS), 200
             
-            new_user = User(
-                username = new_username,
-                private_key = private_keystring,
-                public_key = public_keystring,
-                client_public_key = ""
-            )
+        private_key = generate_private_key() 
+        private_keystring = generate_private_key_string(private_key)
+        public_keystring = generate_public_key_string(private_key)
+            
+        new_user = User(
+            username = new_username,
+            private_key = private_keystring,
+            public_key = public_keystring,
+            client_public_key = ""
+        )
 
-            created_user = UserRepository.create_with_password(new_user, password)
-            create_tenant_user_and_db(created_user)
+        created_user = UserRepository.create_with_password(new_user, password)
+        create_tenant_user_and_db(created_user)
 
-            return make_response(created_user, True, UserMessages.CREATED)
+        return make_response(created_user, True, UserMessages.CREATED)
         
-        except HttpException as e:
-            return make_response(None, False, e.message, e.inner_exception), e.status_code
-        except Exception as e:
-            created_user.delete()
-            return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
+    except HttpException as e:
+        return make_response(None, False, e.message, e.inner_exception), e.status_code
+    except Exception as e:
+        created_user.delete()
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
+
+    
 
 @auth_bp.route("/api/v1/getUserServerPubKey/", methods=['GET'])
 @token_required
