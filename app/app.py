@@ -48,6 +48,15 @@ def create_app():
     app.register_blueprint(expensecategory_bp)
     app.register_blueprint(health_bp)
 
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        app.logger.error("Unhandled exception:\n%s", traceback.format_exc())
+        from utils.Constants import Messages
+        from utils.ResponseMaker import make_response
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
+
+    return app
+
     return app
 
 
