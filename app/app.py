@@ -5,7 +5,7 @@ from endpoints.ExpenseCategoryEndpoints import expensecategory_bp
 from endpoints.AuthenticationEndpoints import auth_bp
 from endpoints.HealthEndpoints import health_bp
 from db import db
-from config import MYSQLUSERNAME, MYSQLPASSWORD, MYSQLHOST, ENABLE_REGISTER
+from config import MYSQLUSERNAME, MYSQLPASSWORD, MYSQLHOST, MYSQLDBNAME, ENABLE_REGISTER
 from utils.Cryptography import generate_keys_file
 from utils.Logger import AppLogger
 
@@ -47,15 +47,6 @@ def create_app():
     app.register_blueprint(expense_bp)
     app.register_blueprint(expensecategory_bp)
     app.register_blueprint(health_bp)
-
-    @app.errorhandler(Exception)
-    def handle_exception(e):
-        app.logger.error("Unhandled exception:\n%s", traceback.format_exc())
-        from utils.Constants import Messages
-        from utils.ResponseMaker import make_response
-        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
-
-    return app
 
     return app
 
