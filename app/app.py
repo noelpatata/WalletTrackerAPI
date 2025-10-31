@@ -5,7 +5,7 @@ from endpoints.ExpenseCategoryEndpoints import expensecategory_bp
 from endpoints.AuthenticationEndpoints import auth_bp
 from endpoints.HealthEndpoints import health_bp
 from db import db
-from config import MYSQLUSERNAME, MYSQLPASSWORD, MYSQLHOST, MYSQLDBNAME, ENABLE_REGISTER
+from config import DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_NAME, ENABLE_REGISTER
 from utils.Cryptography import generate_keys_file
 from utils.Logger import AppLogger
 
@@ -37,7 +37,7 @@ def create_app():
     app.config['ENABLE_REGISTER'] = enable_register
     app.config['PRIVATE_KEY'] = open('private_key.pem', 'r').read()
     app.config['PUBLIC_KEY'] = open('public_key.pem', 'r').read()
-    connectionString = f'mysql://{MYSQLUSERNAME}:{MYSQLPASSWORD}@{MYSQLHOST}/{MYSQLDBNAME}'
+    connectionString = f'mysql://{DATABASE_USERNAME}:{DATABASE_PASSWORD}@{DATABASE_HOST}/{DATABASE_NAME}'
     app.config['SQLALCHEMY_DATABASE_URI'] = connectionString   
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
