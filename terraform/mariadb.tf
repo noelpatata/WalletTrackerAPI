@@ -36,15 +36,15 @@ variable "proxmox_api_token" {
 variable "hostname" {
   description = "MariaDB container hostname"
   type        = string
-  default     = "mysql.wallettracker"
+  default     = "mariadb.wallettracker"
 }
-variable "mysql_root_password" {
+variable "mariadb_root_password" {
   description = "Root password for MariaDB"
   type        = string
   sensitive   = true
   default     = "PNe4Wq0oqvx87oGs6L7Fku9vf"
 }
-variable "wallettracker_mysql_database" {
+variable "wallettracker_mariadb_database" {
   description = "Database name to initialize"
   type        = string
   default     = "wallet_tracker"
@@ -84,14 +84,13 @@ variable "container_password" {
   type        = string
   default     = "noelmaricon123"
 }
-resource "null_resource" "ensure_mysql_volume" {
+resource "null_resource" "ensure_mariadb_volume" {
   connection {
     type     = "ssh"
     user     = "root"
     host     = var.proxmox_ip
     password = var.proxmox_api_token
   }
-
   provisioner "remote-exec" {
     inline = [
       "if [ ! -d '${var.db_volume}' ]; then",
@@ -106,7 +105,7 @@ resource "null_resource" "ensure_mysql_volume" {
   }
 }
 resource "proxmox_lxc" "mariadb" {
-  depends_on   = [null_resource.ensure_mysql_volume]
+  depends_on   = [null_resource.ensure_mariadb_volume]
   target_node  = var.target_node
   hostname     = var.hostname
   ostemplate   = "local:vztmpl/alpine-3.22-default_20250617_amd64.tar.xz"
@@ -146,25 +145,32 @@ resource "null_resource" "setup_mariadb_in_container" {
     user     = "root"
     password = var.proxmox_api_token
   }
-
+  provisioner "file" {
+    source      = "${path.module}/init.sql.template"
+    destination = "/tmp/script.sql"
+  }
   provisioner "remote-exec" {
     inline = [
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- apk update",
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- apk add mariadb mariadb-client",
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- mariadb-install-db --user=mysql --datadir=/var/lib/mysql",
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- rc-service mariadb start",
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- /etc/init.d/mariadb setup",
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- rc-service mariadb start",
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- rc-update add mariadb",
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- sh -c \"mysql -e \\\"CREATE USER 'root'@'${var.api_container_ip}' IDENTIFIED BY '${var.mysql_root_password}'; GRANT ALL PRIVILEGES ON *.* TO 'root'@'${var.api_container_ip}' WITH GRANT OPTION; FLUSH PRIVILEGES;\\\"\"",
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- ip route add default via 192.168.0.1",
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- sed -i 's/^#bind-address=.*/bind-address = ${var.container_ip}/' /etc/my.cnf.d/mariadb-server.cnf",
-      "pct exec ${proxmox_lxc.mariadb.vm_id} -- rc-service mariadb restart"
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- ip route add default via 192.168.0.1",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- apk update",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- apk add mariadb mariadb-client",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb stop || true",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- chown -R mysql:mysql /var/lib/mysql",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- chmod -R 770 /var/lib/mysql",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- mkdir -p /run/mysqld",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- chown mysql:mysql /run/mysqld",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- mariadb-install-db --user=mysql --datadir=/var/lib/mysql",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb start",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- rc-update add mariadb",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c \\\"mariadb -e \\\"CREATE USER 'root'@'${var.api_container_ip}' IDENTIFIED BY '${var.mariadb_root_password}'; GRANT ALL PRIVILEGES ON *.* TO 'root'@'${var.api_container_ip}' WITH GRANT OPTION; FLUSH PRIVILEGES;\\\"\\\"",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^skip-networking/#skip-networking/' /etc/my.cnf.d/mariadb-server.cnf",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^#bind-address=.*/bind-address = ${var.container_ip}/' /etc/my.cnf.d/mariadb-server.cnf",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb restart",
+      "pct push ${proxmox_lxc.mariadb.vmid} /tmp/script.sql /tmp/script.sql",
+      "pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c \\\"mariadb < /tmp/script.sql\\\""
     ]
   }
 }
-
-
 
 output "mariadb_container" {
   value        = proxmox_lxc.mariadb.hostname
