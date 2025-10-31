@@ -1,17 +1,23 @@
 services:
   db:
+    container_name: mariadb
     build:
-      context: ./mysql
+      context: ./database
       dockerfile: Dockerfile
-    env_file:
-      - .env
+    
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DATABASE_NAME}
+      
     ports:
       - "3306:3306"
+      
     volumes:
       - db_data:/var/lib/mysql
     command: >
       sh -c "envsubst < /docker-entrypoint-initdb.d/init.sql.template > /docker-entrypoint-initdb.d/init.sql &&
-             exec docker-entrypoint.sh mysqld"
+         exec docker-entrypoint.sh mariadbd"
+      
   app:
     container_name: wallettracker
     build:
@@ -23,5 +29,6 @@ services:
       - "5000:5000"
     depends_on:
       - db
+      
 volumes:
   db_data:

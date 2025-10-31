@@ -3,7 +3,7 @@ import threading
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from db import db
-from config import MYSQLHOST, MYSQLDBNAME
+from config import DATABASE_HOST, DATABASE_NAME
 from exceptions.Http import HttpException
 from utils.Constants import MultitenantMessages
 _engine_cache = {}
@@ -15,14 +15,14 @@ def construct_db_name(base: str, user_id: int) -> str:
 
 
 def construct_db_connection_string(db_username: str, db_password: str, user_id: int) -> str:
-    user_dbname = construct_db_name(MYSQLDBNAME, user_id)
-    return f"mysql://{db_username}:{db_password}@{MYSQLHOST}/{user_dbname}"
+    user_dbname = construct_db_name(DATABASE_NAME, user_id)
+    return f"mysql://{db_username}:{db_password}@{DATABASE_HOST}/{user_dbname}"
 
 
 def create_tenant_user_and_db(user) -> tuple[str, str]:
     try:
         admin_engine = db.engine
-        user_dbname = construct_db_name(MYSQLDBNAME, user.id)
+        user_dbname = construct_db_name(DATABASE_NAME, user.id)
         db_username = f"u{user.id}"
         db_password = secrets.token_urlsafe(16)
 
