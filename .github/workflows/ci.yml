@@ -29,10 +29,8 @@ jobs:
       - run: |
           echo "Waiting for database to be ready..."
           for i in {1..30}; do
-            if docker compose exec db mysqladmin ping -h db -uroot -p"${{ secrets.DATABASE_ROOT_PASSWORD }}" --silent; then
-              echo "Database is up!"
-              break
-            fi
+            docker compose exec -T db sh -c "mysqladmin ping -uroot -p\"${{ secrets.DATABASE_ROOT_PASSWORD }}\" --silent" && break
+            echo "Waiting for database..."
             sleep 2
           done
 
