@@ -155,11 +155,8 @@ resource "null_resource" "setup_mariadb_in_container" {
   provisioner "remote-exec" {
     inline = [
       <<-EOF
-      set -euxo pipefail
-      export MARIADB_DATABASE="${var.wallettracker_mariadb_database}"
-
       pct exec ${proxmox_lxc.mariadb.vmid} -- apk update
-      pct exec ${proxmox_lxc.mariadb.vmid} -- apk add mariadb mariadb-client
+      pct exec ${proxmox_lxc.mariadb.vmid} -- apk add gettext mariadb mariadb-client
 
       if [ ! -f "${var.db_volume}/ibdata1" ]; then
         echo "🆕 [INFO] Initializing new MariaDB instance in ${var.db_volume}..."
@@ -187,7 +184,7 @@ resource "null_resource" "setup_mariadb_in_container" {
         echo "📦 [INFO] Importing initialization SQL..."
         
         pct push ${proxmox_lxc.mariadb.vmid} /tmp/script.sql /tmp/script.sql
-        pct exec ${proxmox_lxc.mariadb.vmid} -- envsubst < /tmp/script.sql > /tmp/script_parsed.sql
+        pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c "MARIADB_DATABASE='${var.wallettracker_mariadb_database}' envsubst < /tmp/script.sql > /tmp/script_parsed.sql"
         pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c "mariadb < /tmp/script_parsed.sql"
 
         echo "✅ [INFO] Database initialization complete."
