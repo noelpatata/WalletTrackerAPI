@@ -52,7 +52,7 @@ variable "wallettracker_mariadb_database" {
 variable "db_volume" {
   description = "Host directory to bind-mount as /var/lib/mysql (e.g. /mnt/mysql_data)"
   type        = string
-  default     = "/mnt/mysql"
+  default     = "/mnt/mariadb_wallettracker"
 }
 variable "target_node" {
   description = "Proxmox node name where container runs"
@@ -120,6 +120,7 @@ resource "proxmox_lxc" "mariadb" {
   network {
     name       = "eth0"
     bridge     = var.bridge_name
+    gw         = "192.168.0.1"
     ip         = "${var.container_ip}/24"
   }
   mountpoint {
@@ -145,29 +146,53 @@ resource "null_resource" "setup_mariadb_in_container" {
     user     = "root"
     password = var.proxmox_api_token
   }
+
   provisioner "file" {
     source      = "${path.module}/init.sql.template"
     destination = "/tmp/script.sql"
   }
+
   provisioner "remote-exec" {
     inline = [
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- ip route add default via 192.168.0.1",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- apk update",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- apk add mariadb mariadb-client",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb stop || true",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- chown -R mysql:mysql /var/lib/mysql",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- chmod -R 770 /var/lib/mysql",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- mkdir -p /run/mysqld",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- chown mysql:mysql /run/mysqld",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- mariadb-install-db --user=mysql --datadir=/var/lib/mysql",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb start",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- rc-update add mariadb",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c \\\"mariadb -e \\\"CREATE USER 'root'@'${var.api_container_ip}' IDENTIFIED BY '${var.mariadb_root_password}'; GRANT ALL PRIVILEGES ON *.* TO 'root'@'${var.api_container_ip}' WITH GRANT OPTION; FLUSH PRIVILEGES;\\\"\\\"",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^skip-networking/#skip-networking/' /etc/my.cnf.d/mariadb-server.cnf",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^#bind-address=.*/bind-address = ${var.container_ip}/' /etc/my.cnf.d/mariadb-server.cnf",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb restart",
-      "pct push ${proxmox_lxc.mariadb.vmid} /tmp/script.sql /tmp/script.sql",
-      "pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c \\\"mariadb < /tmp/script.sql\\\""
+      <<-EOF
+      set -euxo pipefail
+
+      pct exec ${proxmox_lxc.mariadb.vmid} -- apk update
+      pct exec ${proxmox_lxc.mariadb.vmid} -- apk add mariadb mariadb-client
+
+      if [ ! -f "${var.db_volume}/ibdata1" ]; then
+        echo "🆕 [INFO] Initializing new MariaDB instance in ${var.db_volume}..."
+
+        pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb stop || true
+        pct exec ${proxmox_lxc.mariadb.vmid} -- chown -R mysql:mysql /var/lib/mysql
+        pct exec ${proxmox_lxc.mariadb.vmid} -- chmod -R 770 /var/lib/mysql
+        pct exec ${proxmox_lxc.mariadb.vmid} -- mkdir -p /run/mysqld
+        pct exec ${proxmox_lxc.mariadb.vmid} -- chown mysql:mysql /run/mysqld
+
+        pct exec ${proxmox_lxc.mariadb.vmid} -- mariadb-install-db --user=mysql --datadir=/var/lib/mysql
+        pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb start
+        pct exec ${proxmox_lxc.mariadb.vmid} -- rc-update add mariadb
+
+        pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c "mariadb -e \\
+          \\\"CREATE USER IF NOT EXISTS 'root'@'${var.api_container_ip}' IDENTIFIED BY '${var.mariadb_root_password}'; \\
+          GRANT ALL PRIVILEGES ON *.* TO 'root'@'${var.api_container_ip}' WITH GRANT OPTION; \\
+          FLUSH PRIVILEGES;\\\""
+
+        pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^skip-networking/#skip-networking/' /etc/my.cnf.d/mariadb-server.cnf
+        pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^#bind-address=.*/bind-address = ${var.container_ip}/' /etc/my.cnf.d/mariadb-server.cnf
+
+        pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb restart
+
+        echo "📦 [INFO] Importing initialization SQL..."
+        pct push ${proxmox_lxc.mariadb.vmid} /tmp/script.sql /tmp/script.sql
+        pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c "mariadb < /tmp/script.sql"
+
+        echo "✅ [INFO] Database initialization complete."
+      else
+        echo "ℹ️ [INFO] Existing MariaDB data found in ${var.db_volume}, skipping initialization."
+        pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb restart
+      fi
+      EOF
     ]
   }
 }
