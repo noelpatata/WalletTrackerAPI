@@ -189,7 +189,7 @@ resource "null_resource" "setup_mariadb_in_container" {
 
         echo "✅ [INFO] Database initialization complete."
       else
-        echo "ℹ️ [INFO] Existing MariaDB data found in ${var.db_volume}, skipping initialization."
+        echo "ℹ️ [INFO] Existing MariaDB data found within ${var.db_volume}, skipping initialization."
         pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb restart
       fi
       EOF
