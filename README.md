@@ -25,6 +25,10 @@ Windows:
 ### Install dependencies
 
 ``` bash
+yay -S mariadb-libs
+```
+
+``` bash
 pip install -r requirements.txt
 ```
 
