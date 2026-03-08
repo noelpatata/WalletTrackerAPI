@@ -1,6 +1,7 @@
 services:
   db:
     container_name: mariadb
+    profiles: ["db"]
     build:
       context: ./database
       dockerfile: Dockerfile
@@ -20,6 +21,7 @@ services:
       
   app:
     container_name: wallettracker
+    profiles: ["app"]
     build:
       context: ./app
       dockerfile: Dockerfile
