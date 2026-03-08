@@ -4,45 +4,53 @@ terraform {
       source  = "Telmate/proxmox"
       version = "3.0.2-rc05"
     }
+    vault = {
+      source  = "hashicorp/vault"
+      version = "~> 4.0"
+    }
   }
 }
+
+provider "vault" {
+  address = "https://vault.downops.win"
+}
+
+data "vault_kv_secret_v2" "backend" {
+  mount = "secret"
+  name  = "wallettracker/backend"
+}
+
 provider "proxmox" {
   pm_api_url      = "https://${var.proxmox_ip}:${var.proxmox_port}/api2/json"
-  pm_user         = var.proxmox_api_user
-  pm_password     = var.proxmox_api_token
+  pm_user         = data.vault_kv_secret_v2.backend.data["PROXMOX_API_USER"]
+  pm_password     = data.vault_kv_secret_v2.backend.data["PROXMOX_API_TOKEN"]
   pm_tls_insecure = true
 }
-variable "proxmox_ip" {
-    description = "Proxmox ip address"
-    type        = string
-    default     = "192.168.0.20"
-}
-variable "proxmox_port" {
-    description = "Proxmox port number"
-    type        = string
-    default     = "8006"
-}
-variable "proxmox_api_user" {
-  description = "Proxmox user in format user@realm!tokenid"
-  type        = string
-  default     = "root@pam"
-}
-variable "proxmox_api_token" {
-  description = "API token secret for the above user"
-  type        = string
-  sensitive   = true
-  default     = "noelmaricon123"
-}
+
 variable "hostname" {
   description = "MariaDB container hostname"
   type        = string
   default     = "mariadb.wallettracker"
 }
-variable "mariadb_root_password" {
-  description = "Root password for MariaDB"
+variable "proxmox_ip" {
+  description = "Proxmox ip address"
   type        = string
-  sensitive   = true
-  default     = "PNe4Wq0oqvx87oGs6L7Fku9vf"
+  default     = "192.168.0.20"
+}
+variable "proxmox_port" {
+  description = "Proxmox port number"
+  type        = string
+  default     = "8006"
+}
+variable "api_container_ip" {
+  description = "API container ip address"
+  type        = string
+  default     = "192.168.0.18"
+}
+variable "container_ip" {
+  description = "MariaDB container ip address"
+  type        = string
+  default     = "192.168.0.19"
 }
 variable "wallettracker_mariadb_database" {
   description = "Database name to initialize"
@@ -50,7 +58,7 @@ variable "wallettracker_mariadb_database" {
   default     = "wallet_tracker"
 }
 variable "db_volume" {
-  description = "Host directory to bind-mount as /var/lib/mysql (e.g. /mnt/mysql_data)"
+  description = "Host directory to bind-mount as /var/lib/mysql"
   type        = string
   default     = "/mnt/mariadb_wallettracker"
 }
@@ -60,36 +68,22 @@ variable "target_node" {
   default     = "proxmoxserver"
 }
 variable "bridge_name" {
-  description = "Network bridge to attach container NIC (e.g. vmbr0)"
+  description = "Network bridge to attach container NIC"
   type        = string
   default     = "vmbr0"
 }
 variable "storage_name" {
-  description = "Rootfs storage for container (e.g. local-lvm)"
+  description = "Rootfs storage for container"
   type        = string
   default     = "local-lvm"
 }
-variable "api_container_ip" {
-  description = "ip address"
-  type        = string
-  default     = "192.168.0.18"
-}
-variable "container_ip" {
-  description = "ip address"
-  type        = string
-  default     = "192.168.0.19"
-}
-variable "container_password" {
-  description = "root's password"
-  type        = string
-  default     = "noelmaricon123"
-}
+
 resource "null_resource" "ensure_mariadb_volume" {
   connection {
     type     = "ssh"
     user     = "root"
     host     = var.proxmox_ip
-    password = var.proxmox_api_token
+    password = data.vault_kv_secret_v2.backend.data["PROXMOX_API_TOKEN"]
   }
   provisioner "remote-exec" {
     inline = [
@@ -104,32 +98,33 @@ resource "null_resource" "ensure_mariadb_volume" {
     ]
   }
 }
+
 resource "proxmox_lxc" "mariadb" {
   depends_on   = [null_resource.ensure_mariadb_volume]
   target_node  = var.target_node
   hostname     = var.hostname
   ostemplate   = "local:vztmpl/alpine-3.22-default_20250617_amd64.tar.xz"
-  password     = var.container_password
+  password     = data.vault_kv_secret_v2.backend.data["DB_CONTAINER_PASSWORD"]
   cores        = 2
   memory       = 512
   swap         = 512
   rootfs {
-    storage    = "local-lvm"
-    size       = "4G"
+    storage = "local-lvm"
+    size    = "4G"
   }
   network {
-    name       = "eth0"
-    bridge     = var.bridge_name
-    gw         = "192.168.0.1"
-    ip         = "${var.container_ip}/24"
+    name   = "eth0"
+    bridge = var.bridge_name
+    gw     = "192.168.0.1"
+    ip     = "${var.container_ip}/24"
   }
   mountpoint {
-    key        = "1"
-    slot       = "1"
-    storage    = var.db_volume
-    volume     = var.db_volume
-    mp         = "/var/lib/mysql"
-    size       = "10G"
+    key     = "1"
+    slot    = "1"
+    storage = var.db_volume
+    volume  = var.db_volume
+    mp      = "/var/lib/mysql"
+    size    = "10G"
   }
   start = true
   lifecycle {
@@ -144,7 +139,7 @@ resource "null_resource" "setup_mariadb_in_container" {
     type     = "ssh"
     host     = var.proxmox_ip
     user     = "root"
-    password = var.proxmox_api_token
+    password = data.vault_kv_secret_v2.backend.data["PROXMOX_API_TOKEN"]
   }
 
   provisioner "file" {
@@ -159,7 +154,7 @@ resource "null_resource" "setup_mariadb_in_container" {
       pct exec ${proxmox_lxc.mariadb.vmid} -- apk add gettext mariadb mariadb-client
 
       if [ ! -f "${var.db_volume}/ibdata1" ]; then
-        echo "🆕 [INFO] Initializing new MariaDB instance in ${var.db_volume}..."
+        echo "[INFO] Initializing new MariaDB instance in ${var.db_volume}..."
 
         pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb stop || true
         pct exec ${proxmox_lxc.mariadb.vmid} -- chown -R mysql:mysql /var/lib/mysql
@@ -172,7 +167,7 @@ resource "null_resource" "setup_mariadb_in_container" {
         pct exec ${proxmox_lxc.mariadb.vmid} -- rc-update add mariadb
 
         pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c "mariadb -e \\
-          \\\"CREATE USER IF NOT EXISTS 'root'@'${var.api_container_ip}' IDENTIFIED BY '${var.mariadb_root_password}'; \\
+          \\\"CREATE USER IF NOT EXISTS 'root'@'${var.api_container_ip}' IDENTIFIED BY '${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}'; \\
           GRANT ALL PRIVILEGES ON *.* TO 'root'@'${var.api_container_ip}' WITH GRANT OPTION; \\
           FLUSH PRIVILEGES;\\\""
 
@@ -181,15 +176,15 @@ resource "null_resource" "setup_mariadb_in_container" {
 
         pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb restart
 
-        echo "📦 [INFO] Importing initialization SQL..."
-        
+        echo "[INFO] Importing initialization SQL..."
+
         pct push ${proxmox_lxc.mariadb.vmid} /tmp/script.sql /tmp/script.sql
         pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c "MARIADB_DATABASE='${var.wallettracker_mariadb_database}' envsubst < /tmp/script.sql > /tmp/script_parsed.sql"
         pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c "mariadb < /tmp/script_parsed.sql"
 
-        echo "✅ [INFO] Database initialization complete."
+        echo "[INFO] Database initialization complete."
       else
-        echo "ℹ️ [INFO] Existing MariaDB data found within ${var.db_volume}, skipping initialization."
+        echo "[INFO] Existing MariaDB data found within ${var.db_volume}, skipping initialization."
         pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb restart
       fi
       EOF
@@ -198,5 +193,5 @@ resource "null_resource" "setup_mariadb_in_container" {
 }
 
 output "mariadb_container" {
-  value        = proxmox_lxc.mariadb.hostname
+  value = proxmox_lxc.mariadb.hostname
 }
