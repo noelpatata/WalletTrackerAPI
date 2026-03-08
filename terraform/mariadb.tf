@@ -21,10 +21,10 @@ data "vault_kv_secret_v2" "backend" {
 }
 
 provider "proxmox" {
-  pm_api_url      = "https://${var.proxmox_ip}:${var.proxmox_port}/api2/json"
-  pm_user         = data.vault_kv_secret_v2.backend.data["PROXMOX_API_USER"]
-  pm_password     = data.vault_kv_secret_v2.backend.data["PROXMOX_API_TOKEN"]
-  pm_tls_insecure = true
+  pm_api_url          = "https://${var.proxmox_ip}:${var.proxmox_port}/api2/json"
+  pm_api_token_id     = data.vault_kv_secret_v2.backend.data["PROXMOX_API_TOKEN_ID"]
+  pm_api_token_secret = data.vault_kv_secret_v2.backend.data["PROXMOX_API_TOKEN_SECRET"]
+  pm_tls_insecure     = true
 }
 
 variable "hostname" {
