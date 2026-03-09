@@ -80,10 +80,11 @@ variable "storage_name" {
 
 resource "null_resource" "ensure_mariadb_volume" {
   connection {
-    type     = "ssh"
-    user     = "root"
-    host     = var.proxmox_ip
-    password = data.vault_kv_secret_v2.backend.data["PROXMOX_API_TOKEN"]
+    type        = "ssh"
+    user        = "root"
+    host        = var.proxmox_ip
+    private_key = data.vault_kv_secret_v2.backend.data["PROXMOX_SSH_PRIVATE_KEY"]
+    agent       = true
   }
   provisioner "remote-exec" {
     inline = [
@@ -136,10 +137,11 @@ resource "null_resource" "setup_mariadb_in_container" {
   depends_on = [proxmox_lxc.mariadb]
 
   connection {
-    type     = "ssh"
-    host     = var.proxmox_ip
-    user     = "root"
-    password = data.vault_kv_secret_v2.backend.data["PROXMOX_API_TOKEN"]
+    type        = "ssh"
+    host        = var.proxmox_ip
+    user        = "root"
+    private_key = data.vault_kv_secret_v2.backend.data["PROXMOX_SSH_PRIVATE_KEY"]
+    agent       = true
   }
 
   provisioner "file" {
