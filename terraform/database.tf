@@ -1,56 +1,7 @@
-terraform {
-  required_providers {
-    proxmox = {
-      source  = "Telmate/proxmox"
-      version = "3.0.2-rc05"
-    }
-    vault = {
-      source  = "hashicorp/vault"
-      version = "~> 4.0"
-    }
-  }
-}
-
-provider "vault" {
-  address = "https://vault.downops.win"
-}
-
-data "vault_kv_secret_v2" "backend" {
-  mount = "secret"
-  name  = "wallettracker/backend"
-}
-
-provider "proxmox" {
-  pm_api_url      = "https://${var.proxmox_ip}:${var.proxmox_port}/api2/json"
-  pm_user         = "${data.vault_kv_secret_v2.backend.data["PROXMOX_USER"]}@pam"
-  pm_password     = data.vault_kv_secret_v2.backend.data["PROXMOX_PASSWORD"]
-  pm_tls_insecure = true
-}
-
-variable "hostname" {
+variable "db_hostname" {
   description = "MariaDB container hostname"
   type        = string
   default     = "mariadb.wallettracker"
-}
-variable "proxmox_ip" {
-  description = "Proxmox ip address"
-  type        = string
-  default     = "192.168.0.20"
-}
-variable "proxmox_port" {
-  description = "Proxmox port number"
-  type        = string
-  default     = "8006"
-}
-variable "api_container_ip" {
-  description = "API container ip address"
-  type        = string
-  default     = "192.168.0.18"
-}
-variable "container_ip" {
-  description = "MariaDB container ip address"
-  type        = string
-  default     = "192.168.0.19"
 }
 variable "wallettracker_mariadb_database" {
   description = "Database name to initialize"
@@ -61,16 +12,6 @@ variable "db_volume" {
   description = "Host directory to bind-mount as /var/lib/mysql"
   type        = string
   default     = "/mnt/mariadb_wallettracker"
-}
-variable "target_node" {
-  description = "Proxmox node name where container runs"
-  type        = string
-  default     = "proxmoxserver"
-}
-variable "bridge_name" {
-  description = "Network bridge to attach container NIC"
-  type        = string
-  default     = "vmbr0"
 }
 variable "storage_name" {
   description = "Rootfs storage for container"
@@ -102,7 +43,7 @@ resource "null_resource" "ensure_mariadb_volume" {
 resource "proxmox_lxc" "mariadb" {
   depends_on   = [null_resource.ensure_mariadb_volume]
   target_node  = var.target_node
-  hostname     = var.hostname
+  hostname     = var.db_hostname
   ostemplate   = "local:vztmpl/alpine-3.22-default_20250617_amd64.tar.xz"
   password     = data.vault_kv_secret_v2.backend.data["DB_CONTAINER_PASSWORD"]
   cores        = 2
@@ -116,7 +57,7 @@ resource "proxmox_lxc" "mariadb" {
     name   = "eth0"
     bridge = var.bridge_name
     gw     = "192.168.0.1"
-    ip     = "${var.container_ip}/24"
+    ip     = "${var.db_container_ip}/24"
   }
   mountpoint {
     key     = "1"
@@ -172,7 +113,7 @@ resource "null_resource" "setup_mariadb_in_container" {
           FLUSH PRIVILEGES;\\\""
 
         pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^skip-networking/#skip-networking/' /etc/my.cnf.d/mariadb-server.cnf
-        pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^#bind-address=.*/bind-address = ${var.container_ip}/' /etc/my.cnf.d/mariadb-server.cnf
+        pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^#bind-address=.*/bind-address = ${var.db_container_ip}/' /etc/my.cnf.d/mariadb-server.cnf
 
         pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb restart
 
