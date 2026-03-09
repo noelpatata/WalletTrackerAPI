@@ -19,6 +19,10 @@ data "vault_kv_secret_v2" "backend" {
   mount = "secret"
   name  = "wallettracker/backend"
 }
+data "vault_kv_secret_v2" "app" {
+  mount = "secret"
+  name  = "wallettracker/app"
+}
 
 provider "proxmox" {
   pm_api_url      = "https://${var.proxmox_ip}:${var.proxmox_port}/api2/json"
