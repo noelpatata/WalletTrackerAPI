@@ -84,7 +84,6 @@ resource "null_resource" "ensure_mariadb_volume" {
     user        = "root"
     host        = var.proxmox_ip
     private_key = data.vault_kv_secret_v2.backend.data["PROXMOX_SSH_PRIVATE_KEY"]
-    agent       = true
   }
   provisioner "remote-exec" {
     inline = [
@@ -141,7 +140,6 @@ resource "null_resource" "setup_mariadb_in_container" {
     host        = var.proxmox_ip
     user        = "root"
     private_key = data.vault_kv_secret_v2.backend.data["PROXMOX_SSH_PRIVATE_KEY"]
-    agent       = true
   }
 
   provisioner "file" {
