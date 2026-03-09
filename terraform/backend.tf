@@ -12,6 +12,7 @@ resource "proxmox_lxc" "api" {
   cores       = 2
   memory      = 512
   swap        = 512
+  nameserver  = "8.8.8.8"
   rootfs {
     storage = "local-lvm"
     size    = "4G"
