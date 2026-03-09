@@ -70,7 +70,7 @@ resource "null_resource" "setup_api_in_container" {
       pct exec ${proxmox_lxc.api.vmid} -- apk update
       pct exec ${proxmox_lxc.api.vmid} -- apk add --no-cache git python3 py3-pip mariadb-dev gcc musl-dev python3-dev build-base linux-headers
 
-      pct exec ${proxmox_lxc.api.vmid} -- git clone https://${data.vault_kv_secret_v2.backend.data["GITHUB_TOKEN"]}@github.com/noelpatata/WalletTrackerAPI.git /srv/WalletTrackerAPI
+      pct exec ${proxmox_lxc.api.vmid} -- git clone https://github.com/noelpatata/WalletTrackerAPI.git /srv/WalletTrackerAPI
 
       pct exec ${proxmox_lxc.api.vmid} -- python3 -m venv /srv/WalletTrackerAPI/app/.venv
       pct exec ${proxmox_lxc.api.vmid} -- /srv/WalletTrackerAPI/app/.venv/bin/pip install --no-cache-dir -r /srv/WalletTrackerAPI/app/requirements.txt
