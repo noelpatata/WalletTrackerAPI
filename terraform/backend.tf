@@ -8,7 +8,7 @@ resource "proxmox_lxc" "api" {
   target_node = var.target_node
   hostname    = var.api_hostname
   ostemplate  = "local:vztmpl/alpine-3.22-default_20250617_amd64.tar.xz"
-  password    = data.vault_kv_secret_v2.backend.data["API_CONTAINER_PASSWORD"]
+  password    = data.vault_kv_secret_v2.backend.data["BACKEND_CONTAINER_PASSWORD"]
   cores       = 2
   memory      = 512
   swap        = 512
@@ -54,7 +54,7 @@ resource "null_resource" "setup_api_in_container" {
       export WALLET_TRACKER_DB_USER="root"
       export WALLET_TRACKER_DB_HOST="${var.db_container_ip}"
       export DATABASE_NAME="wallet_tracker"
-      export WALLET_TRACKER_SECRET="${data.vault_kv_secret_v2.backend.data["WALLET_TRACKER_SECRET"]}"
+      export WALLET_TRACKER_SECRET="${data.vault_kv_secret_v2.app.data["SIGN_SECRET_WORD"]}"
       export ENABLE_REGISTER="false"
 
       start_pre() {
