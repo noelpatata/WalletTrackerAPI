@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/vault"
       version = "~> 4.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
   }
 }
 
@@ -23,6 +27,10 @@ data "vault_kv_secret_v2" "backend" {
 data "vault_kv_secret_v2" "app" {
   mount = "secret"
   name  = "wallettracker/app"
+}
+
+provider "cloudflare" {
+  api_token = data.vault_kv_secret_v2.backend.data["CLOUDFLARE_API_TOKEN"]
 }
 
 provider "proxmox" {
