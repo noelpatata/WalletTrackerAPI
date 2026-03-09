@@ -12,7 +12,8 @@ terraform {
 }
 
 provider "vault" {
-  address = "https://vault.downops.win"
+  address           = "https://vault.downops.win"
+  skip_child_token  = true
 }
 
 data "vault_kv_secret_v2" "backend" {
