@@ -7,7 +7,11 @@ variable "api_public_hostname" {
 resource "cloudflare_zero_trust_tunnel_cloudflared" "api" {
   account_id = data.vault_kv_secret_v2.backend.data["CLOUDFLARE_ACCOUNT_ID"]
   name       = "wallettracker-api"
-  config_src = "cloudflare"
+}
+
+data "cloudflare_zero_trust_tunnel_cloudflared_token" "api" {
+  account_id = data.vault_kv_secret_v2.backend.data["CLOUDFLARE_ACCOUNT_ID"]
+  tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.api.id
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "api" {
@@ -52,7 +56,7 @@ resource "null_resource" "setup_cloudflared" {
       name="cloudflared"
       description="Cloudflare Tunnel"
       command="/usr/bin/cloudflared"
-      command_args="tunnel run --token ${cloudflare_zero_trust_tunnel_cloudflared.api.tunnel_token}"
+      command_args="tunnel run --token ${data.cloudflare_zero_trust_tunnel_cloudflared_token.api.token}"
       command_background=true
       pidfile="/run/cloudflared.pid"
       output_log="/var/logs/cloudflared.log"
