@@ -41,7 +41,7 @@ resource "cloudflare_dns_record" "api" {
 }
 
 resource "null_resource" "setup_cloudflared" {
-  depends_on = [null_resource.setup_api_in_container, cloudflare_zero_trust_tunnel_cloudflared.api]
+  depends_on = [null_resource.deploy_api, cloudflare_zero_trust_tunnel_cloudflared.api]
 
   connection {
     type     = "ssh"

@@ -93,6 +93,61 @@ resource "null_resource" "setup_api_in_container" {
   }
 }
 
+resource "null_resource" "deploy_api" {
+  depends_on = [null_resource.setup_api_in_container, null_resource.deploy_mariadb]
+
+  triggers = {
+    always_run = timestamp()
+  }
+
+  connection {
+    type     = "ssh"
+    host     = var.proxmox_ip
+    user     = data.vault_kv_secret_v2.backend.data["PROXMOX_USER"]
+    password = data.vault_kv_secret_v2.backend.data["PROXMOX_PASSWORD"]
+  }
+
+  provisioner "file" {
+    content     = <<-INITEOF
+      #!/sbin/openrc-run
+      description="WalletTracker uWSGI"
+
+      VENV_PATH="/srv/WalletTrackerAPI/app/.venv"
+      directory="/srv/WalletTrackerAPI/app"
+      pidfile="/run/wallettracker.pid"
+      command="$${VENV_PATH}/bin/uwsgi"
+      command_args="--ini $${directory}/uwsgi.ini"
+      command_background="yes"
+
+      export DATABASE_ROOT_PASSWORD="${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}"
+      export WALLET_TRACKER_DB_USER="root"
+      export WALLET_TRACKER_DB_HOST="${var.db_container_ip}"
+      export DATABASE_NAME="wallet_tracker"
+      export WALLET_TRACKER_SECRET="${data.vault_kv_secret_v2.app.data["SIGN_SECRET_WORD"]}"
+      export ENABLE_REGISTER="false"
+
+      start_pre() {
+        checkpath --directory --owner root:root $${pidfile%/*}
+      }
+      INITEOF
+    destination = "/tmp/wallettracker.init"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      <<-EOF
+      pct exec ${proxmox_lxc.api.vmid} -- git -C /srv/WalletTrackerAPI pull
+
+      pct push ${proxmox_lxc.api.vmid} /tmp/wallettracker.init /etc/init.d/wallettracker
+      rm /tmp/wallettracker.init
+      pct exec ${proxmox_lxc.api.vmid} -- chmod +x /etc/init.d/wallettracker
+
+      pct exec ${proxmox_lxc.api.vmid} -- rc-service wallettracker restart
+      EOF
+    ]
+  }
+}
+
 output "api_container" {
   value = proxmox_lxc.api.hostname
 }
