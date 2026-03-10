@@ -109,10 +109,7 @@ resource "null_resource" "setup_mariadb_in_container" {
         pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb start
         pct exec ${proxmox_lxc.mariadb.vmid} -- rc-update add mariadb
 
-        pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c "mariadb -e \\
-          \\\"CREATE USER IF NOT EXISTS 'root'@'${var.api_container_ip}' IDENTIFIED BY '${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}'; \\
-          GRANT ALL PRIVILEGES ON *.* TO 'root'@'${var.api_container_ip}' WITH GRANT OPTION; \\
-          FLUSH PRIVILEGES;\\\""
+        pct exec ${proxmox_lxc.mariadb.vmid} -- mariadb -e "CREATE USER IF NOT EXISTS 'root'@'${var.api_container_ip}' IDENTIFIED BY '${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}'; GRANT ALL PRIVILEGES ON *.* TO 'root'@'${var.api_container_ip}' WITH GRANT OPTION; FLUSH PRIVILEGES;"
 
         pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^skip-networking/#skip-networking/' /etc/my.cnf.d/mariadb-server.cnf
         pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^#bind-address=.*/bind-address = ${var.db_container_ip}/' /etc/my.cnf.d/mariadb-server.cnf
