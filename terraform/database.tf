@@ -1,7 +1,7 @@
 variable "db_hostname" {
   description = "MariaDB container hostname"
   type        = string
-  default     = "mariadb.wallettracker"
+  default     = "database.wallettracker.downops.win"
 }
 variable "wallettracker_mariadb_database" {
   description = "Database name to initialize"

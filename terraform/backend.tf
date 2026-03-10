@@ -1,7 +1,7 @@
 variable "api_hostname" {
   description = "API container hostname"
   type        = string
-  default     = "api.wallettracker"
+  default     = "backend.wallettracker.downops.win"
 }
 
 resource "proxmox_lxc" "api" {
