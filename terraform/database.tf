@@ -134,6 +134,30 @@ resource "null_resource" "setup_mariadb_in_container" {
   }
 }
 
+resource "null_resource" "deploy_mariadb" {
+  depends_on = [null_resource.setup_mariadb_in_container]
+
+  triggers = {
+    always_run = timestamp()
+  }
+
+  connection {
+    type     = "ssh"
+    host     = var.proxmox_ip
+    user     = data.vault_kv_secret_v2.backend.data["PROXMOX_USER"]
+    password = data.vault_kv_secret_v2.backend.data["PROXMOX_PASSWORD"]
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      <<-EOF
+      pct exec ${proxmox_lxc.mariadb.vmid} -- mariadb -u root -e \
+        "ALTER USER 'root'@'${var.api_container_ip}' IDENTIFIED BY '${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}'; FLUSH PRIVILEGES;"
+      EOF
+    ]
+  }
+}
+
 output "mariadb_container" {
   value = proxmox_lxc.mariadb.hostname
 }
