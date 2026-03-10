@@ -1,51 +1,158 @@
-# Wallet Tracker Rest API for development environment
-## Clone
-``` bash
-git clone https://github.com/noelpatata/WalletTrackerAPI.git && cd WalletTrackerAPI/
+# WalletTrackerAPI
+
+A REST API for tracking personal finances, built with Flask and deployed on a self-hosted infrastructure stack.
+
+The API handles authentication (JWT with RSA keys), expense categories, and expense tracking. It is designed for self-hosting and exposes endpoints through a Cloudflare tunnel.
+
+---
+
+## Architecture
+
+```
+GitHub ──► GitHub Actions ──► Jenkins ──► Proxmox (Docker containers)
+                                               │
+                              Cloudflare Tunnel ◄─── Flask API (port 5000)
+                                                         │
+                                                    MariaDB (port 3306)
+
+Terraform manages: Proxmox VMs/containers, Cloudflare DNS, Vault secrets
+HashiCorp Vault: stores all secrets (Jenkins credentials, DB passwords, API tokens)
 ```
 
-## Python's virtual environment
-### Create
+### Components
 
-``` bash
-python3 -m venv .venv
-```
-### Activate 
-Linux:
+| Component | Role |
+|---|---|
+| **Flask (Python)** | REST API backend — auth, expenses, categories |
+| **MariaDB** | Relational database via SQLAlchemy ORM |
+| **Docker / Docker Compose** | Containerization with profile-based service selection |
+| **Terraform** | Provisions Proxmox LXC containers, Cloudflare DNS records, and Vault secrets |
+| **HashiCorp Vault** | Centralized secrets management — no secrets in CI/CD or environment files |
+| **GitHub Actions** | CI on pull requests, CD trigger on merge to `main` |
+| **Jenkins** | Executes the actual deployment pipeline on the self-hosted server |
+| **Proxmox** | Hypervisor hosting the LXC containers for the API and database |
+| **Cloudflare** | Tunnel and DNS routing — exposes the API publicly without open ports |
+| **Bruno** | API collection for manual endpoint testing during development |
 
-``` bash
-source env/bin/activate
-```
-Windows:
+### CI/CD Flow
 
-``` cmd
-.\env\Scripts\Activate.ps1
-```
+- **CI** — runs on every pull request to `main`: spins up `db` + `app` containers via Docker Compose and runs `pytest`
+- **CD** — runs on merge to `main`: fetches secrets from Vault and triggers a Jenkins webhook to deploy
+- To skip CD on a specific merge, add the **`skip cd`** label to the PR before merging
 
-### Install dependencies
+---
 
-``` bash
+## Dev Environment Setup
+
+### Requirements
+
+- Python 3.x
+- Docker and Docker Compose
+- MariaDB client libraries (for `mysqlclient`)
+
+On Arch Linux:
+```bash
 yay -S mariadb-libs
 ```
 
-``` bash
-pip install -r requirements.txt
+On Debian/Ubuntu:
+```bash
+sudo apt install libmariadb-dev
 ```
 
----
+### 1. Clone
 
-## Deployment
+```bash
+git clone https://github.com/noelpatata/WalletTrackerAPI.git && cd WalletTrackerAPI/
+```
 
-``` bash
+### 2. Python virtual environment
+
+```bash
+python3 -m venv .venv
+```
+
+Activate — Linux:
+```bash
+source .venv/bin/activate
+```
+
+Activate — Windows:
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Install dependencies:
+```bash
+pip install -r app/requirements.txt
+```
+
+### 3. Environment variables
+
+Create a `.env` file in the project root:
+
+```env
+DATABASE_NAME=wallet_tracker
+DATABASE_ROOT_PASSWORD=adminadmin
+WALLET_TRACKER_SECRET=your_secret_here
+WALLET_TRACKER_DB_USER=root
+WALLET_TRACKER_DB_HOST=db
+ENABLE_REGISTER=true
+
+# Controls which Docker Compose services start (see below)
+COMPOSE_PROFILES=db,app
+```
+
+#### `COMPOSE_PROFILES`
+
+Docker Compose uses profiles to selectively start services:
+
+| Value | Services started | Use case |
+|---|---|---|
+| `db` | MariaDB only | Run the app locally against a containerized DB |
+| `app` | Flask app only | Use an external DB |
+| `db,app` | Both | Full local stack / CI |
+
+Example — start only the database (run the app directly with Python):
+```bash
+COMPOSE_PROFILES=db docker compose up -d --build
+```
+
+### 4. Run with Docker Compose
+
+Start both services:
+```bash
 docker compose up -d --build
 ```
 
-## Run tests
+The API will be available at `http://localhost:5000`.
 
-Make sure you have the virtual environment activated.
-``` bash
+### 5. Run the app directly (without Docker)
+
+Make sure the database is running (either via Docker or externally), then:
+```bash
+python app/main.py
+```
+
+### 6. Run tests
+
+With the virtual environment activated:
+```bash
 pytest -v
+```
+
+Or via Docker Compose (mirrors CI):
+```bash
+docker compose exec app pytest -v
 ```
 
 ---
 
+## API Endpoints
+
+Use the [Bruno](https://www.usebruno.com/) collection in the `bruno/` directory to explore and test the available endpoints.
+
+Available request groups:
+- Auth (`/login`, `/register`)
+- Expense Categories
+- Expenses
