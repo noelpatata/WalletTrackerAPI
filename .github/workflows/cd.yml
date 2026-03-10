@@ -8,7 +8,21 @@ jobs:
   trigger-cd:
     runs-on: ubuntu-latest
     steps:
+      - name: Check for skip-cd label
+        id: check-label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha
+            });
+            const skipCd = prs.data.some(pr => pr.labels.some(l => l.name === 'skip cd'));
+            core.setOutput('skip', skipCd ? 'true' : 'false');
+
       - name: Fetch secrets from Vault
+        if: steps.check-label.outputs.skip != 'true'
         uses: hashicorp/vault-action@v3
         with:
           url: https://vault.downops.win
@@ -20,6 +34,7 @@ jobs:
             secret/data/wallettracker/backend JENKINS_USERNAME
 
       - name: Trigger Jenkins Wallet Tracker CD
+        if: steps.check-label.outputs.skip != 'true'
         env:
           GIT_BRANCH: main
         run: |
