@@ -1,7 +1,7 @@
 variable "db_hostname" {
   description = "MariaDB container hostname"
   type        = string
-  default     = "mariadb.wallettracker"
+  default     = "database.wallettracker.downops.win"
 }
 variable "wallettracker_mariadb_database" {
   description = "Database name to initialize"
@@ -151,8 +151,12 @@ resource "null_resource" "deploy_mariadb" {
   provisioner "remote-exec" {
     inline = [
       <<-EOF
-      pct exec ${proxmox_lxc.mariadb.vmid} -- mariadb -u root -e \
-        "ALTER USER 'root'@'${var.api_container_ip}' IDENTIFIED BY '${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}'; FLUSH PRIVILEGES;"
+      if [ -f "${var.db_volume}/ibdata1" ]; then
+        pct exec ${proxmox_lxc.mariadb.vmid} -- mariadb -u root -e \
+          "ALTER USER 'root'@'${var.api_container_ip}' IDENTIFIED BY '${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}'; FLUSH PRIVILEGES;"
+      else
+        echo "[INFO] Fresh install detected, skipping ALTER USER."
+      fi
       EOF
     ]
   }

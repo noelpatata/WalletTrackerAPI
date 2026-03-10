@@ -7,6 +7,7 @@ variable "api_public_hostname" {
 resource "cloudflare_zero_trust_tunnel_cloudflared" "api" {
   account_id = data.vault_kv_secret_v2.backend.data["CLOUDFLARE_ACCOUNT_ID"]
   name       = "wallettracker-api"
+  depends_on = [null_resource.deploy_api]
 }
 
 data "cloudflare_zero_trust_tunnel_cloudflared_token" "api" {
@@ -38,6 +39,9 @@ resource "cloudflare_dns_record" "api" {
   type    = "CNAME"
   ttl     = 1
   proxied = true
+  lifecycle {
+    create_before_destroy = false
+  }
 }
 
 resource "null_resource" "setup_cloudflared" {
