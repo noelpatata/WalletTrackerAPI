@@ -4,37 +4,40 @@ variable "api_public_hostname" {
   default     = "api.downops.win"
 }
 
-resource "cloudflare_tunnel" "api" {
+resource "cloudflare_zero_trust_tunnel_cloudflared" "api" {
   account_id = data.vault_kv_secret_v2.backend.data["CLOUDFLARE_ACCOUNT_ID"]
   name       = "wallettracker-api"
-  secret     = data.vault_kv_secret_v2.backend.data["CLOUDFLARE_TUNNEL_SECRET"]
+  config_src = "cloudflare"
 }
 
-resource "cloudflare_tunnel_config" "api" {
+resource "cloudflare_zero_trust_tunnel_cloudflared_config" "api" {
   account_id = data.vault_kv_secret_v2.backend.data["CLOUDFLARE_ACCOUNT_ID"]
-  tunnel_id  = cloudflare_tunnel.api.id
+  tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.api.id
 
-  config {
-    ingress_rule {
-      hostname = var.api_public_hostname
-      service  = "http://localhost:5000"
-    }
-    ingress_rule {
-      service = "http_status:404"
-    }
+  config = {
+    ingress = [
+      {
+        hostname = var.api_public_hostname
+        service  = "http://localhost:5000"
+      },
+      {
+        service = "http_status:404"
+      }
+    ]
   }
 }
 
-resource "cloudflare_record" "api" {
+resource "cloudflare_dns_record" "api" {
   zone_id = data.vault_kv_secret_v2.backend.data["CLOUDFLARE_ZONE_ID"]
   name    = "api"
-  content = "${cloudflare_tunnel.api.id}.cfargotunnel.com"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.api.id}.cfargotunnel.com"
   type    = "CNAME"
+  ttl     = 1
   proxied = true
 }
 
 resource "null_resource" "setup_cloudflared" {
-  depends_on = [null_resource.setup_api_in_container, cloudflare_tunnel.api]
+  depends_on = [null_resource.setup_api_in_container, cloudflare_zero_trust_tunnel_cloudflared.api]
 
   connection {
     type     = "ssh"
@@ -49,7 +52,7 @@ resource "null_resource" "setup_cloudflared" {
       name="cloudflared"
       description="Cloudflare Tunnel"
       command="/usr/bin/cloudflared"
-      command_args="tunnel run --token ${cloudflare_tunnel.api.tunnel_token}"
+      command_args="tunnel run --token ${cloudflare_zero_trust_tunnel_cloudflared.api.tunnel_token}"
       command_background=true
       pidfile="/run/cloudflared.pid"
       output_log="/var/logs/cloudflared.log"
