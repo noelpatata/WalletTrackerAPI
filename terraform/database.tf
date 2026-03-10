@@ -92,6 +92,7 @@ resource "null_resource" "setup_mariadb_in_container" {
   provisioner "remote-exec" {
     inline = [
       <<-EOF
+      set -ex
       pct exec ${proxmox_lxc.mariadb.vmid} -- apk update
       pct exec ${proxmox_lxc.mariadb.vmid} -- apk add gettext mariadb mariadb-client
 
@@ -151,6 +152,7 @@ resource "null_resource" "deploy_mariadb" {
   provisioner "remote-exec" {
     inline = [
       <<-EOF
+      set -ex
       if [ -f "${var.db_volume}/ibdata1" ]; then
         pct exec ${proxmox_lxc.mariadb.vmid} -- mariadb -u root -e \
           "ALTER USER 'root'@'${var.api_container_ip}' IDENTIFIED BY '${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}'; FLUSH PRIVILEGES;"

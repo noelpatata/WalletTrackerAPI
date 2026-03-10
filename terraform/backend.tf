@@ -68,6 +68,7 @@ resource "null_resource" "setup_api_in_container" {
   provisioner "remote-exec" {
     inline = [
       <<-EOF
+      set -ex
       pct exec ${proxmox_lxc.api.vmid} -- apk update
       pct exec ${proxmox_lxc.api.vmid} -- apk add --no-cache git python3 py3-pip mariadb-dev gcc musl-dev python3-dev build-base linux-headers
 
@@ -136,6 +137,7 @@ resource "null_resource" "deploy_api" {
   provisioner "remote-exec" {
     inline = [
       <<-EOF
+      set -ex
       pct exec ${proxmox_lxc.api.vmid} -- git -C /srv/WalletTrackerAPI pull
 
       pct push ${proxmox_lxc.api.vmid} /tmp/wallettracker.init /etc/init.d/wallettracker
