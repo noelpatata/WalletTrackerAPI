@@ -1,9 +1,11 @@
 import os
 from flask import Flask
-from endpoints.ExpenseEndpoints import expense_bp 
-from endpoints.ExpenseCategoryEndpoints import expensecategory_bp 
+from endpoints.ExpenseEndpoints import expense_bp
+from endpoints.ExpenseCategoryEndpoints import expensecategory_bp
 from endpoints.AuthenticationEndpoints import auth_bp
 from endpoints.HealthEndpoints import health_bp
+from endpoints.SeasonEndpoints import season_bp
+from endpoints.ImporteEndpoints import importe_bp
 from db import db
 from config import DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_NAME, ENABLE_REGISTER
 from utils.Cryptography import generate_keys_file
@@ -21,6 +23,8 @@ def create_app_test(test_config=None):
     app.register_blueprint(expense_bp)
     app.register_blueprint(expensecategory_bp)
     app.register_blueprint(health_bp)
+    app.register_blueprint(season_bp)
+    app.register_blueprint(importe_bp)
 
     return app
 
@@ -47,8 +51,9 @@ def create_app():
     app.register_blueprint(expense_bp)
     app.register_blueprint(expensecategory_bp)
     app.register_blueprint(health_bp)
+    app.register_blueprint(season_bp)
+    app.register_blueprint(importe_bp)
 
     return app
 
 
-    

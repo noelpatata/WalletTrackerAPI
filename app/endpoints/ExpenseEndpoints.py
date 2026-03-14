@@ -1,6 +1,8 @@
+from datetime import datetime
 from flask import Blueprint, jsonify
 from models.Expense import Expense
 from repositories.ExpenseRepository import ExpenseRepository
+from repositories.SeasonRepository import SeasonRepository
 from endpoints.middlewares.AuthMiddleware import cryptography_required, signature_required, cipher_and_sign_response
 from utils.ResponseMaker import make_response
 from utils.Constants import Messages, ExpenseMessages
@@ -57,6 +59,21 @@ def get_by_category(user_id, session, user, decrypted_data):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
 
+@expense_bp.route('/api/v1/Expense/season/', methods=['POST'])
+@cryptography_required
+@cipher_and_sign_response
+def get_by_season(user_id, session, user, decrypted_data):
+    try:
+        is_empty(decrypted_data, ["seasonId"])
+        expenses = ExpenseRepository.get_by_season(decrypted_data.get('seasonId'), session)
+        response = make_response(expenses, True, ExpenseMessages.FETCHED_PLURAL), 200
+        session.remove()
+        return response
+    except HttpException as e:
+        return make_response(None, False, e.message, e.inner_exception), e.status_code
+    except Exception as e:
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
+
 @expense_bp.route('/api/v1/Expense/', methods=['POST'])
 @cryptography_required
 @cipher_and_sign_response
@@ -64,17 +81,21 @@ def create_expense(user_id, session, user, decrypted_data):
     try:
         data = decrypted_data
         is_empty(data, ["price", "expenseDate", "category"])
- 
+
         price = data.get('price')
         expenseDate = data.get('expenseDate')
         catId = data.get('category')
         description = data.get('description')
 
+        parsed_date = datetime.strptime(expenseDate, "%Y-%m-%d")
+        season = SeasonRepository.get_or_create(parsed_date.year, parsed_date.month, session)
+
         new_expense = Expense(
             price=price,
-            category = catId,
-            expenseDate = expenseDate,
-            description = description
+            category=catId,
+            expenseDate=expenseDate,
+            description=description,
+            seasonId=season.id
         )
 
         new_expense.save(session)
@@ -133,6 +154,12 @@ def edit(user_id, session, user, decrypted_data):
             return make_response(None, False, ExpenseMessages.NOT_FOUND), 200    
 
         exp.edit(**data)
+
+        if data.get('expenseDate'):
+            parsed_date = datetime.strptime(data.get('expenseDate'), "%Y-%m-%d")
+            season = SeasonRepository.get_or_create(parsed_date.year, parsed_date.month, session)
+            exp.seasonId = season.id
+
         exp.save(session)
 
         response = make_response(exp, True, ExpenseMessages.MODIFIED), 200

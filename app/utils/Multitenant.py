@@ -67,9 +67,16 @@ def initialise_tenant_db(user):
 
             from repositories.ExpenseRepository import Expense
             from repositories.ExpenseCategoryRepository import ExpenseCategory
+            from models.Season import Season
+            from models.Importe import Importe
 
             db.metadata.create_all(
-                bind=eng, tables=[Expense.__table__, ExpenseCategory.__table__]
+                bind=eng, tables=[
+                    ExpenseCategory.__table__,
+                    Season.__table__,
+                    Expense.__table__,
+                    Importe.__table__,
+                ]
             )
 
             return eng

@@ -152,6 +152,7 @@ resource "null_resource" "deploy_mariadb" {
       <<-EOF
       set -ex
       if [ -f "${var.db_volume}/ibdata1" ]; then
+        pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^#bind-address=.*/bind-address = ${var.db_container_ip}/' /etc/my.cnf.d/mariadb-server.cnf
         pct exec ${proxmox_lxc.mariadb.vmid} -- mariadb -u root -e \
           "ALTER USER 'root'@'${var.api_container_ip}' IDENTIFIED BY '${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}'; FLUSH PRIVILEGES;"
       else

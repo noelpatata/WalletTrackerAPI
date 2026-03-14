@@ -9,3 +9,4 @@ class Expense(db.Model, BaseModel):
     expenseDate = db.Column(db.Date, nullable=False)
     category = db.Column(db.Integer, db.ForeignKey('ExpenseCategory.id', ondelete='CASCADE'), nullable=False)
     description = db.Column(db.String(255), nullable=True)
+    seasonId = db.Column(db.Integer, db.ForeignKey('Season.id', ondelete='SET NULL'), nullable=True)
