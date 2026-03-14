@@ -48,7 +48,7 @@ resource "null_resource" "setup_api_in_container" {
       directory="/srv/WalletTrackerAPI/app"
       pidfile="/run/wallettracker.pid"
       command="$${VENV_PATH}/bin/uwsgi"
-      command_args="--ini $${directory}/uwsgi.ini"
+      command_args="--ini $${directory}/uwsgi.ini --logto2 /var/logs/wallettracker.log"
       command_background="yes"
 
       export DATABASE_ROOT_PASSWORD="${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}"
@@ -117,7 +117,7 @@ resource "null_resource" "deploy_api" {
       directory="/srv/WalletTrackerAPI/app"
       pidfile="/run/wallettracker.pid"
       command="$${VENV_PATH}/bin/uwsgi"
-      command_args="--ini $${directory}/uwsgi.ini"
+      command_args="--ini $${directory}/uwsgi.ini --logto2 /var/logs/wallettracker.log"
       command_background="yes"
 
       export DATABASE_ROOT_PASSWORD="${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}"
