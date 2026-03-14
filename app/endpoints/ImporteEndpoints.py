@@ -58,7 +58,6 @@ def create_importe(user_id, session, user, decrypted_data):
             importeDate=decrypted_data.get('importeDate'),
             amount=decrypted_data.get('amount'),
             balanceAfter=decrypted_data.get('balanceAfter'),
-            iban=decrypted_data.get('iban'),
             seasonId=decrypted_data.get('seasonId')
         )
         new_importe.save(session)
