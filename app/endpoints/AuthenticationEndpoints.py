@@ -24,7 +24,7 @@ def login():
             if user is None:
                 return make_response(None, False, UserMessages.USER_NOT_FOUND), 401
             if(UserRepository.check_password(user, auth.get('password'))):
-                payload = {'user': user.id, 'exp': datetime.now(timezone.utc) + timedelta(hours=2)}
+                payload = {'user': user.id, 'exp': datetime.now(timezone.utc) + timedelta(minutes=5)}
                 token = jwt.encode(
                     payload,
                     current_app.config['PRIVATE_KEY'],
