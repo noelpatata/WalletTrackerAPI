@@ -3,19 +3,29 @@ from db import db
 from models.Expense import Expense
 
 class ExpenseRepository:
-    
+
     @staticmethod
     def get_by_id(expense_id, session=None):
         sess = session or db.session
         fetched_expense = sess.query(Expense).get(expense_id)
         return fetched_expense
-    
+
     @staticmethod
     def get_by_category(category_id, session=None):
         sess = session or db.session
         return (
             sess.query(Expense)
             .filter(Expense.category == category_id)
+            .order_by(desc(Expense.expenseDate), desc(Expense.id))
+            .all()
+        )
+
+    @staticmethod
+    def get_by_season(season_id, session=None):
+        sess = session or db.session
+        return (
+            sess.query(Expense)
+            .filter(Expense.seasonId == season_id)
             .order_by(desc(Expense.expenseDate), desc(Expense.id))
             .all()
         )

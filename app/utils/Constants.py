@@ -43,3 +43,16 @@ class ExpenseMessages:
     DELETED = "Expense deleted successfully"
     DELETED_PLURAL = "Expenses deleted successfully"
     MODIFIED = "Expense modified successfully"
+class SeasonMessages:
+    NOT_FOUND = "Season not found"
+    FETCHED = "Season fetched successfully"
+    FETCHED_PLURAL = "Seasons fetched successfully"
+    CREATED = "Season created successfully"
+    DELETED = "Season deleted successfully"
+class ImporteMessages:
+    NOT_FOUND = "Importe not found"
+    FETCHED = "Importe fetched successfully"
+    FETCHED_PLURAL = "Importes fetched successfully"
+    CREATED = "Importe created successfully"
+    DELETED = "Importe deleted successfully"
+    DELETED_PLURAL = "Importes deleted successfully"
