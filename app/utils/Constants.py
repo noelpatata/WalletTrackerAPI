@@ -54,5 +54,6 @@ class ImporteMessages:
     FETCHED = "Importe fetched successfully"
     FETCHED_PLURAL = "Importes fetched successfully"
     CREATED = "Importe created successfully"
+    CREATED_PLURAL = "Importes created successfully"
     DELETED = "Importe deleted successfully"
     DELETED_PLURAL = "Importes deleted successfully"

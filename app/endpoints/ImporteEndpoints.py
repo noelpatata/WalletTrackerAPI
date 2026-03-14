@@ -69,6 +69,48 @@ def create_importe(user_id, session, user, decrypted_data):
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
 
+
+@importe_bp.route('/api/v1/Importe/all', methods=['POST'])
+@cryptography_required
+@cipher_and_sign_response
+def create_importes_bulk(user_id, session, user, decrypted_data):
+    try:
+        is_empty(decrypted_data, ["importes"])
+        importes = decrypted_data.get('importes')
+        if not isinstance(importes, list) or len(importes) == 0:
+            raise HttpException(Messages.INVALID_REQUEST, 400)
+
+        created = []
+        seasons_cache = {}
+        for item in importes:
+            is_empty(item, ["concept", "importeDate", "amount", "seasonId"])
+
+            season_id = item.get('seasonId')
+            if season_id not in seasons_cache:
+                season = SeasonRepository.get_by_id(season_id, session)
+                if not season:
+                    return make_response(None, False, SeasonMessages.NOT_FOUND), 200
+                seasons_cache[season_id] = season
+
+            created_importe = Importe(
+                concept=item.get('concept'),
+                importeDate=item.get('importeDate'),
+                amount=item.get('amount'),
+                balanceAfter=item.get('balanceAfter'),
+                seasonId=season_id
+            )
+            session.add(created_importe)
+            created.append(created_importe)
+
+        session.commit()
+        response = make_response(created, True, ImporteMessages.CREATED_PLURAL), 200
+        session.remove()
+        return response
+    except HttpException as e:
+        return make_response(None, False, e.message, e.inner_exception), e.status_code
+    except Exception as e:
+        return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
+
 @importe_bp.route('/api/v1/Importe/delete', methods=['POST'])
 @cryptography_required
 def delete_by_id(user_id, session, user, decrypted_data):
