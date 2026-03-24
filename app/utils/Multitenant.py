@@ -9,16 +9,16 @@ from utils.Constants import MultitenantMessages
 _engine_cache = {}
 _lock = threading.Lock()
 
-
+#TODO this is common
 def construct_db_name(base: str, user_id: int) -> str:
     return f"{base}_u{user_id}"
 
-
+#TODO this is also common
 def construct_db_connection_string(db_username: str, db_password: str, user_id: int) -> str:
     user_dbname = construct_db_name(DATABASE_NAME, user_id)
     return f"mysql://{db_username}:{db_password}@{DATABASE_HOST}/{user_dbname}"
 
-
+#TODO this is an entrypoint for user creation
 def create_tenant_user_and_db(user) -> tuple[str, str]:
     try:
         admin_engine = db.engine
@@ -54,7 +54,7 @@ def create_tenant_user_and_db(user) -> tuple[str, str]:
         raise HttpException(MultitenantMessages.INIT_TENANT_FAILED, 500, e)
     
 
-
+#TODO this is also common
 def initialise_tenant_db(user):
     try:
         with _lock:
@@ -82,7 +82,8 @@ def initialise_tenant_db(user):
             return eng
     except Exception as e:
         raise HttpException(MultitenantMessages.INIT_TENANT_FAILED, 500, e) 
-    
+
+#TODO this is also an entry point for user operations    
 def get_tenant_session(user):
     try:
         eng = initialise_tenant_db(user)

@@ -14,6 +14,8 @@ from validators.FieldValidator import is_empty
 
 auth_bp = Blueprint('authentication', __name__)
 
+# TODO move every logic of each endpoint to a Service:
+# TODO Repository <- Service <- Endpoint
 @auth_bp.route("/api/v1/login/", methods=['POST'])
 def login():
     try:
@@ -37,6 +39,7 @@ def login():
     except Exception as e:
         return make_response(None, False, Messages.INTERNAL_ERROR, e), 500
     
+#TODO then this will be easier to replicate in the seeder.py
 @auth_bp.route("/api/v1/register/", methods=['POST'])
 def register():
     try:
