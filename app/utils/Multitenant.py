@@ -1,24 +1,13 @@
 import secrets
-import threading
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from db import db
-from config import DATABASE_HOST, DATABASE_NAME
+from config import DATABASE_NAME
 from exceptions.Http import HttpException
 from utils.Constants import MultitenantMessages
-_engine_cache = {}
-_lock = threading.Lock()
+from utils.MultitenantCore import construct_db_name, initialise_tenant_db
 
-#TODO this is common
-def construct_db_name(base: str, user_id: int) -> str:
-    return f"{base}_u{user_id}"
 
-#TODO this is also common
-def construct_db_connection_string(db_username: str, db_password: str, user_id: int) -> str:
-    user_dbname = construct_db_name(DATABASE_NAME, user_id)
-    return f"mysql://{db_username}:{db_password}@{DATABASE_HOST}/{user_dbname}"
-
-#TODO this is an entrypoint for user creation
 def create_tenant_user_and_db(user) -> tuple[str, str]:
     try:
         admin_engine = db.engine
@@ -33,12 +22,10 @@ def create_tenant_user_and_db(user) -> tuple[str, str]:
                     "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
                 )
             )
-
             conn.execute(
                 text(f"CREATE USER IF NOT EXISTS '{db_username}'@'%' IDENTIFIED BY :pwd"),
                 {"pwd": db_password},
             )
-
             conn.execute(
                 text(f"GRANT ALL PRIVILEGES ON `{user_dbname}`.* TO '{db_username}'@'%'")
             )
@@ -52,43 +39,11 @@ def create_tenant_user_and_db(user) -> tuple[str, str]:
         return db_username, db_password
     except Exception as e:
         raise HttpException(MultitenantMessages.INIT_TENANT_FAILED, 500, e)
-    
 
-#TODO this is also common
-def initialise_tenant_db(user):
-    try:
-        with _lock:
-            if user.id in _engine_cache:
-                return _engine_cache[user.id]
 
-            uri = construct_db_connection_string(user.db_username, user.db_password, user.id)
-            eng = create_engine(uri, pool_pre_ping=True, pool_recycle=3600)
-            _engine_cache[user.id] = eng
-
-            from repositories.ExpenseRepository import Expense
-            from repositories.ExpenseCategoryRepository import ExpenseCategory
-            from models.Season import Season
-            from models.Importe import Importe
-
-            db.metadata.create_all(
-                bind=eng, tables=[
-                    ExpenseCategory.__table__,
-                    Season.__table__,
-                    Expense.__table__,
-                    Importe.__table__,
-                ]
-            )
-
-            return eng
-    except Exception as e:
-        raise HttpException(MultitenantMessages.INIT_TENANT_FAILED, 500, e) 
-
-#TODO this is also an entry point for user operations    
 def get_tenant_session(user):
     try:
         eng = initialise_tenant_db(user)
         return scoped_session(sessionmaker(bind=eng))
     except Exception as e:
         raise HttpException(MultitenantMessages.INIT_TENANT_FAILED, 500, e)
-
-        

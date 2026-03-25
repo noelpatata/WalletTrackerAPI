@@ -13,4 +13,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["uwsgi", "--ini", "uwsgi.ini"]
+CMD ["python", "seeder.py"]

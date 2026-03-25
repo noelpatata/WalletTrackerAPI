@@ -1,0 +1,47 @@
+import threading
+from sqlalchemy import create_engine
+from db import db
+from config import DATABASE_HOST, DATABASE_NAME
+from exceptions.Http import HttpException
+from utils.Constants import MultitenantMessages
+
+_engine_cache = {}
+_lock = threading.Lock()
+
+
+def construct_db_name(base: str, user_id: int) -> str:
+    return f"{base}_u{user_id}"
+
+
+def construct_db_connection_string(db_username: str, db_password: str, user_id: int) -> str:
+    user_dbname = construct_db_name(DATABASE_NAME, user_id)
+    return f"mysql://{db_username}:{db_password}@{DATABASE_HOST}/{user_dbname}"
+
+
+def initialise_tenant_db(user):
+    try:
+        with _lock:
+            if user.id in _engine_cache:
+                return _engine_cache[user.id]
+
+            uri = construct_db_connection_string(user.db_username, user.db_password, user.id)
+            eng = create_engine(uri, pool_pre_ping=True, pool_recycle=3600)
+            _engine_cache[user.id] = eng
+
+            from repositories.ExpenseRepository import Expense
+            from repositories.ExpenseCategoryRepository import ExpenseCategory
+            from models.Season import Season
+            from models.Importe import Importe
+
+            db.metadata.create_all(
+                bind=eng, tables=[
+                    ExpenseCategory.__table__,
+                    Season.__table__,
+                    Expense.__table__,
+                    Importe.__table__,
+                ]
+            )
+
+            return eng
+    except Exception as e:
+        raise HttpException(MultitenantMessages.INIT_TENANT_FAILED, 500, e)
