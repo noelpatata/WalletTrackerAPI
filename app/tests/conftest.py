@@ -35,6 +35,7 @@ def app(keys, tmp_path):
 
     with app.app_context():
         from models.User import User
+        from models.RefreshToken import RefreshToken
         db.create_all()
 
         hex_hashed_password, hex_salt = hash_password("password123")
