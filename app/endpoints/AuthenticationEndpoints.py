@@ -13,8 +13,8 @@ from db import db
 from endpoints.middlewares.AuthMiddleware import token_required
 from exceptions.Http import HttpException
 from validators.FieldValidator import is_empty
+from config import REFRESH_TOKEN_EXPIRY_DAYS
 
-REFRESH_TOKEN_EXPIRY_DAYS = 30
 
 auth_bp = Blueprint('authentication', __name__)
 
