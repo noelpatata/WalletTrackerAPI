@@ -9,6 +9,11 @@ class TokenMessages:
     MISSING = "Missing token"
     EXPIRED = "Expired token"
     INVALID = "Invalid token"
+    REFRESH_MISSING = "Missing refresh token"
+    REFRESH_EXPIRED = "Refresh token expired"
+    REFRESH_INVALID = "Invalid refresh token"
+    REFRESHED = "Token refreshed successfully"
+    LOGGED_OUT = "Logged out successfully"
 class AuthMessages:
     CIPHERED_RESPONSE_SUCCESSFULLY = "Ciphered message successfully"
     AUTH_ERROR = "Authorization error"

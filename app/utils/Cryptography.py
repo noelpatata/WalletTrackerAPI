@@ -205,6 +205,18 @@ def decode_jwt(token):
     except jwt.InvalidTokenError:
         raise HttpException(TokenMessages.INVALID, 401)
 
+def decode_jwt_ignore_expiry(token):
+    try:
+        payload = jwt.decode(
+                token,
+                current_app.config['PUBLIC_KEY'],
+                algorithms=['RS256'],
+                options={"verify_exp": False}
+            )
+        return payload
+    except jwt.InvalidTokenError:
+        raise HttpException(TokenMessages.INVALID, 401)
+
 def hash_password(password: str, salt: str = None) -> tuple[str, str]:
     if salt is not None:
         salt_bytes = binascii.unhexlify(salt)
