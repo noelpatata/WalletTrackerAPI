@@ -1,5 +1,6 @@
 import os
 from flask import Flask
+from flask_migrate import Migrate
 from endpoints.ExpenseEndpoints import expense_bp
 from endpoints.ExpenseCategoryEndpoints import expensecategory_bp
 from endpoints.AuthenticationEndpoints import auth_bp
@@ -10,6 +11,13 @@ from db import db
 from config import DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_NAME, ENABLE_REGISTER
 from utils.Cryptography import generate_keys_file
 from utils.Logger import AppLogger
+
+TENANT_TABLES = {"Expense", "ExpenseCategory", "Season", "Importe"}
+
+def _include_name(name, type_, parent_names):
+    if type_ == "table":
+        return name in TENANT_TABLES
+    return True
 
 def create_app_test(test_config=None):
     app = Flask(__name__)
@@ -45,8 +53,9 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = connectionString   
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
+
     db.init_app(app)
+    Migrate(app, db, directory="migrations_tenant", include_name=_include_name)
     app.register_blueprint(auth_bp)
     app.register_blueprint(expense_bp)
     app.register_blueprint(expensecategory_bp)
