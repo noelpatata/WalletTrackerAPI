@@ -39,7 +39,7 @@ def login():
                 refresh_token = RefreshToken(
                     jti=jti,
                     user_id=user.id,
-                    expires_at=datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRY_DAYS)
+                    expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRY_DAYS)
                 )
                 db.session.add(refresh_token)
                 db.session.commit()

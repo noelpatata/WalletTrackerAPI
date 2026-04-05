@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from db import db
 from models.BaseModel import BaseModel
+from utils.TZDateTime import TZDateTime
 
 class RefreshToken(db.Model, BaseModel):
     __tablename__ = "RefreshToken"
@@ -8,8 +9,8 @@ class RefreshToken(db.Model, BaseModel):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     jti = db.Column(db.String(36), nullable=False, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('User.id'), nullable=False)
-    expires_at = db.Column(db.DateTime, nullable=False)
+    expires_at = db.Column(TZDateTime, nullable=False)
     revoked = db.Column(db.Boolean, nullable=False, default=False)
 
     def is_valid(self):
-        return not self.revoked and self.expires_at > datetime.utcnow()
+        return not self.revoked and self.expires_at > datetime.now(timezone.utc)
