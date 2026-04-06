@@ -3,7 +3,9 @@ __pycache__/
 __pycache__
 .env
 .env/
+app/.pytest.env
 .venv/
 *.pem
 *.log
 testing/
+.pytest_cache

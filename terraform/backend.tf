@@ -70,12 +70,13 @@ resource "null_resource" "setup_api_in_container" {
       <<-EOF
       set -ex
       pct exec ${proxmox_lxc.api.vmid} -- apk update
-      pct exec ${proxmox_lxc.api.vmid} -- apk add --no-cache git python3 py3-pip mariadb-dev gcc musl-dev python3-dev build-base linux-headers
+      pct exec ${proxmox_lxc.api.vmid} -- apk add --no-cache git python3 mariadb-dev gcc musl-dev python3-dev build-base linux-headers
+
+      pct exec ${proxmox_lxc.api.vmid} -- sh -c 'wget -qO /tmp/uv.tar.gz https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-musl.tar.gz && tar -xzf /tmp/uv.tar.gz -C /tmp && mv /tmp/uv /usr/local/bin/uv && rm /tmp/uv.tar.gz'
 
       pct exec ${proxmox_lxc.api.vmid} -- git clone https://github.com/noelpatata/WalletTrackerAPI.git /srv/WalletTrackerAPI
 
-      pct exec ${proxmox_lxc.api.vmid} -- python3 -m venv /srv/WalletTrackerAPI/app/.venv
-      pct exec ${proxmox_lxc.api.vmid} -- /srv/WalletTrackerAPI/app/.venv/bin/pip install --no-cache-dir -r /srv/WalletTrackerAPI/app/requirements.txt
+      pct exec ${proxmox_lxc.api.vmid} -- uv sync --no-dev --frozen --directory /srv/WalletTrackerAPI/app
 
       pct exec ${proxmox_lxc.api.vmid} -- apk del gcc musl-dev build-base linux-headers
 
@@ -139,6 +140,8 @@ resource "null_resource" "deploy_api" {
       <<-EOF
       set -ex
       pct exec ${proxmox_lxc.api.vmid} -- git -C /srv/WalletTrackerAPI pull
+
+      pct exec ${proxmox_lxc.api.vmid} -- sh -c "DATABASE_ROOT_PASSWORD='${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}' DATABASE_NAME='wallet_tracker' WALLET_TRACKER_DB_USER='root' WALLET_TRACKER_DB_HOST='${var.db_container_ip}' /srv/WalletTrackerAPI/app/.venv/bin/python /srv/WalletTrackerAPI/app/migrate_all.py"
 
       pct push ${proxmox_lxc.api.vmid} /tmp/wallettracker.init /etc/init.d/wallettracker
       rm /tmp/wallettracker.init
