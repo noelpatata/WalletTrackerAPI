@@ -7,3 +7,5 @@ DATABASE_HOST = os.environ.get("WALLET_TRACKER_DB_HOST", "db")
 SECRET = os.environ.get("WALLET_TRACKER_SECRET", "randomSecret")
 ENABLE_REGISTER = os.environ.get("ENABLE_REGISTER", "false")
 REFRESH_TOKEN_EXPIRY_DAYS = 30
+
+MAIN_TABLES = {"User", "RefreshToken"}

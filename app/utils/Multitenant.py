@@ -3,7 +3,7 @@ import threading
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from db import db
-from config import DATABASE_HOST, DATABASE_NAME
+from config import DATABASE_HOST, DATABASE_NAME, MAIN_TABLES
 from exceptions.Http import HttpException
 from utils.Constants import MultitenantMessages
 _engine_cache = {}
@@ -65,19 +65,11 @@ def initialise_tenant_db(user):
             eng = create_engine(uri, pool_pre_ping=True, pool_recycle=3600)
             _engine_cache[user.id] = eng
 
-            from repositories.ExpenseRepository import Expense
-            from repositories.ExpenseCategoryRepository import ExpenseCategory
-            from models.Season import Season
-            from models.Importe import Importe
-
-            db.metadata.create_all(
-                bind=eng, tables=[
-                    ExpenseCategory.__table__,
-                    Season.__table__,
-                    Expense.__table__,
-                    Importe.__table__,
-                ]
-            )
+            tenant_tables = [
+                t for name, t in db.metadata.tables.items()
+                if name not in MAIN_TABLES
+            ]
+            db.metadata.create_all(bind=eng, tables=tenant_tables)
 
             return eng
     except Exception as e:

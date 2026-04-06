@@ -8,15 +8,13 @@ from endpoints.HealthEndpoints import health_bp
 from endpoints.SeasonEndpoints import season_bp
 from endpoints.ImporteEndpoints import importe_bp
 from db import db
-from config import DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_NAME, ENABLE_REGISTER
+from config import DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_NAME, ENABLE_REGISTER, MAIN_TABLES
 from utils.Cryptography import generate_keys_file
 from utils.Logger import AppLogger
 
-TENANT_TABLES = {"Expense", "ExpenseCategory", "Season", "Importe"}
-
-def _include_name(name, type_, parent_names):
+def _include_object(object, name, type_, reflected, compare_to):
     if type_ == "table":
-        return name in TENANT_TABLES
+        return name in MAIN_TABLES
     return True
 
 def create_app_test(test_config=None):
@@ -55,7 +53,7 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
-    Migrate(app, db, directory="migrations_tenant", include_name=_include_name)
+    Migrate(app, db, directory="migrations_main", include_object=_include_object)
     app.register_blueprint(auth_bp)
     app.register_blueprint(expense_bp)
     app.register_blueprint(expensecategory_bp)

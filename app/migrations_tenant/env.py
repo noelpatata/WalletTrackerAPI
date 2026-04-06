@@ -15,11 +15,11 @@ config.set_main_option(
 
 target_metadata = current_app.extensions["migrate"].db.metadata
 
-TENANT_TABLES = {"Expense", "ExpenseCategory", "Season", "Importe"}
+from config import MAIN_TABLES
 
-def include_name(name, type_, parent_names):
+def include_object(object, name, type_, reflected, compare_to):
     if type_ == "table":
-        return name in TENANT_TABLES
+        return name not in MAIN_TABLES
     return True
 
 
@@ -28,7 +28,7 @@ def run_migrations_offline():
         url=current_app.config["SQLALCHEMY_DATABASE_URI"],
         target_metadata=target_metadata,
         literal_binds=True,
-        include_name=include_name,
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -40,7 +40,7 @@ def run_migrations_online():
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            include_name=include_name,
+            include_object=include_object,
         )
         with context.begin_transaction():
             context.run_migrations()
