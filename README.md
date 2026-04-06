@@ -201,6 +201,27 @@ flask db migrate --directory migrations_tenant -m "describe your change"
 
 Review the generated file in `versions/` before committing. Then apply with `migrate_all.py`.
 
+### Removing a table
+
+Removing a model from the code does **not** automatically drop the table — you must generate and commit a migration first:
+
+1. Delete the model class from the codebase
+2. Generate the migration for the relevant directory:
+
+```bash
+# Main DB
+flask db migrate --directory migrations_main -m "remove <table>"
+
+# Tenant DB
+flask db migrate --directory migrations_tenant -m "remove <table>"
+```
+
+3. Review the generated file in `versions/` — confirm it contains `op.drop_table(...)`
+4. Commit and push the migration file
+5. The next pipeline run will apply it and drop the table in prod
+
+If you skip step 2–4 and only remove the model, the pipeline will find no new migration and leave the table untouched.
+
 ### On deploy
 
 `migrate_all.py` runs automatically on every deploy via Terraform (`backend.tf`), before the service restarts.
