@@ -4,6 +4,8 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from sqlalchemy import create_engine, text
+from alembic.config import Config as AlembicConfig
+from alembic import command as alembic_command
 from flask_migrate import upgrade as migrate_upgrade
 from app import create_app
 
@@ -23,6 +25,28 @@ def get_tenant_databases(engine):
         return [row[0] for row in rows if row[0].startswith(TENANT_PREFIX)]
 
 
+def needs_stamp(engine):
+    with engine.connect() as conn:
+        tables = conn.execute(text("SHOW TABLES")).fetchall()
+        table_names = [row[0] for row in tables]
+        return len(table_names) > 0 and "alembic_version" not in table_names
+
+
+def stamp_head(db_url, migrations_dir):
+    cfg = AlembicConfig()
+    cfg.set_main_option("script_location", migrations_dir)
+    cfg.set_main_option("sqlalchemy.url", db_url)
+    alembic_command.stamp(cfg, "head")
+
+
+def migrate_app(app, migrations_dir, db_url, engine):
+    if needs_stamp(engine):
+        print(f"[migrate_all] Pre-Alembic DB detected, stamping head...")
+        stamp_head(db_url, migrations_dir)
+    with app.app_context():
+        migrate_upgrade(directory=migrations_dir)
+
+
 def main():
     admin_url = f"mysql://{DATABASE_USERNAME}:{DATABASE_PASSWORD}@{DATABASE_HOST}/{DATABASE_NAME}"
     admin_engine = create_engine(admin_url)
@@ -30,8 +54,7 @@ def main():
     # 1. Main DB
     print("[migrate_all] Migrating main DB...")
     app = create_app()
-    with app.app_context():
-        migrate_upgrade(directory=MAIN_MIGRATIONS_DIR)
+    migrate_app(app, MAIN_MIGRATIONS_DIR, admin_url, admin_engine)
     print("[migrate_all] Main DB done.")
 
     # 2. Tenant DBs
@@ -45,10 +68,11 @@ def main():
     print(f"[migrate_all] Migrating {len(tenant_dbs)} tenant database(s)...")
     for db_name in tenant_dbs:
         url = f"mysql://{DATABASE_USERNAME}:{DATABASE_PASSWORD}@{DATABASE_HOST}/{db_name}"
+        tenant_engine = create_engine(url)
         tenant_app = create_app()
         tenant_app.config["SQLALCHEMY_DATABASE_URI"] = url
-        with tenant_app.app_context():
-            migrate_upgrade(directory=TENANT_MIGRATIONS_DIR)
+        migrate_app(tenant_app, TENANT_MIGRATIONS_DIR, url, tenant_engine)
+        tenant_engine.dispose()
         print(f"[migrate_all]   [OK] {db_name}")
 
     print("[migrate_all] Done.")

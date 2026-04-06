@@ -6,9 +6,9 @@ from utils.TZDateTime import TZDateTime
 class RefreshToken(db.Model, BaseModel):
     __tablename__ = "RefreshToken"
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     jti = db.Column(db.String(36), nullable=False, unique=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('User.id'), nullable=False)
+    user_id = db.Column(db.BigInteger, db.ForeignKey('User.id'), nullable=False)
     expires_at = db.Column(TZDateTime, nullable=False)
     revoked = db.Column(db.Boolean, nullable=False, default=False)
 
