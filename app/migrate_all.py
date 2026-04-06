@@ -5,9 +5,24 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from sqlalchemy import create_engine, text
 from alembic.config import Config as AlembicConfig
-from alembic import command as alembic_command
+from alembic.script import ScriptDirectory
 from flask_migrate import upgrade as migrate_upgrade
 from app import create_app
+
+
+def stamp_head(engine, migrations_dir):
+    cfg = AlembicConfig()
+    cfg.set_main_option("script_location", migrations_dir)
+    script = ScriptDirectory.from_config(cfg)
+    head_revision = script.get_current_head()
+    with engine.connect() as conn:
+        conn.execute(text(
+            "CREATE TABLE IF NOT EXISTS alembic_version "
+            "(version_num VARCHAR(32) NOT NULL, "
+            "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+        ))
+        conn.execute(text(f"INSERT INTO alembic_version (version_num) VALUES ('{head_revision}')"))
+        conn.commit()
 
 DATABASE_PASSWORD = os.environ.get("DATABASE_ROOT_PASSWORD", "12345678")
 DATABASE_NAME     = os.environ.get("DATABASE_NAME", "wallet_tracker")
@@ -39,11 +54,11 @@ def stamp_head(db_url, migrations_dir):
     alembic_command.stamp(cfg, "head")
 
 
-def migrate_app(app, migrations_dir, db_url, engine):
+def migrate_app(app, migrations_dir, engine):
     with app.app_context():
         if needs_stamp(engine):
             print(f"[migrate_all] Pre-Alembic DB detected, stamping head...")
-            stamp_head(db_url, migrations_dir)
+            stamp_head(engine, migrations_dir)
         migrate_upgrade(directory=migrations_dir)
 
 
@@ -54,7 +69,7 @@ def main():
     # 1. Main DB
     print("[migrate_all] Migrating main DB...")
     app = create_app()
-    migrate_app(app, MAIN_MIGRATIONS_DIR, admin_url, admin_engine)
+    migrate_app(app, MAIN_MIGRATIONS_DIR, admin_engine)
     print("[migrate_all] Main DB done.")
 
     # 2. Tenant DBs
@@ -71,7 +86,7 @@ def main():
         tenant_engine = create_engine(url)
         tenant_app = create_app()
         tenant_app.config["SQLALCHEMY_DATABASE_URI"] = url
-        migrate_app(tenant_app, TENANT_MIGRATIONS_DIR, url, tenant_engine)
+        migrate_app(tenant_app, TENANT_MIGRATIONS_DIR, tenant_engine)
         tenant_engine.dispose()
         print(f"[migrate_all]   [OK] {db_name}")
 
