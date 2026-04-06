@@ -141,7 +141,7 @@ resource "null_resource" "deploy_api" {
 
       pct exec ${proxmox_lxc.api.vmid} -- uv sync --no-dev --frozen --directory /srv/WalletTrackerAPI/app
 
-      pct exec ${proxmox_lxc.api.vmid} -- sh -c "DATABASE_ROOT_PASSWORD='${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}' DATABASE_NAME='wallet_tracker' WALLET_TRACKER_DB_USER='root' WALLET_TRACKER_DB_HOST='${var.db_container_ip}' /srv/WalletTrackerAPI/app/.venv/bin/python /srv/WalletTrackerAPI/app/migrate_all.py"
+      pct exec ${proxmox_lxc.api.vmid} -- sh -c "export DATABASE_ROOT_PASSWORD='${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}'; export DATABASE_NAME='wallet_tracker'; export WALLET_TRACKER_DB_USER='root'; export WALLET_TRACKER_DB_HOST='${var.db_container_ip}'; /srv/WalletTrackerAPI/app/.venv/bin/python /srv/WalletTrackerAPI/app/migrate_all.py"
 
       pct push ${proxmox_lxc.api.vmid} /tmp/wallettracker.init /etc/init.d/wallettracker
       rm /tmp/wallettracker.init
