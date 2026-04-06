@@ -48,7 +48,7 @@ resource "null_resource" "setup_api_in_container" {
       directory="/srv/WalletTrackerAPI/app"
       pidfile="/run/wallettracker.pid"
       command="$${VENV_PATH}/bin/uwsgi"
-      command_args="--ini $${directory}/uwsgi.ini --logto2 /var/logs/wallettracker.log"
+      command_args="--ini $${directory}/uwsgi.ini --logto2 /var/log/wallettracker.log"
       command_background="yes"
 
       export DATABASE_ROOT_PASSWORD="${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}"
@@ -81,8 +81,8 @@ resource "null_resource" "setup_api_in_container" {
       pct exec ${proxmox_lxc.api.vmid} -- apk del gcc musl-dev build-base linux-headers
 
       pct exec ${proxmox_lxc.api.vmid} -- mkdir -p /var/logs
-      pct exec ${proxmox_lxc.api.vmid} -- touch /var/logs/wallettracker.log
-      pct exec ${proxmox_lxc.api.vmid} -- chmod 644 /var/logs/wallettracker.log
+      pct exec ${proxmox_lxc.api.vmid} -- touch /var/log/wallettracker.log
+      pct exec ${proxmox_lxc.api.vmid} -- chmod 644 /var/log/wallettracker.log
 
       pct push ${proxmox_lxc.api.vmid} /tmp/wallettracker.init /etc/init.d/wallettracker
       rm /tmp/wallettracker.init
@@ -118,7 +118,7 @@ resource "null_resource" "deploy_api" {
       directory="/srv/WalletTrackerAPI/app"
       pidfile="/run/wallettracker.pid"
       command="$${VENV_PATH}/bin/uwsgi"
-      command_args="--ini $${directory}/uwsgi.ini --logto2 /var/logs/wallettracker.log"
+      command_args="--ini $${directory}/uwsgi.ini --logto2 /var/log/wallettracker.log"
       command_background="yes"
 
       export DATABASE_ROOT_PASSWORD="${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}"
@@ -140,6 +140,8 @@ resource "null_resource" "deploy_api" {
       <<-EOF
       set -ex
       pct exec ${proxmox_lxc.api.vmid} -- git -C /srv/WalletTrackerAPI pull
+
+      pct exec ${proxmox_lxc.api.vmid} -- uv sync --no-dev --frozen --directory /srv/WalletTrackerAPI/app
 
       pct exec ${proxmox_lxc.api.vmid} -- sh -c "DATABASE_ROOT_PASSWORD='${data.vault_kv_secret_v2.backend.data["MARIADB_ROOT_PASSWORD"]}' DATABASE_NAME='wallet_tracker' WALLET_TRACKER_DB_USER='root' WALLET_TRACKER_DB_HOST='${var.db_container_ip}' /srv/WalletTrackerAPI/app/.venv/bin/python /srv/WalletTrackerAPI/app/migrate_all.py"
 
