@@ -40,10 +40,10 @@ def stamp_head(db_url, migrations_dir):
 
 
 def migrate_app(app, migrations_dir, db_url, engine):
-    if needs_stamp(engine):
-        print(f"[migrate_all] Pre-Alembic DB detected, stamping head...")
-        stamp_head(db_url, migrations_dir)
     with app.app_context():
+        if needs_stamp(engine):
+            print(f"[migrate_all] Pre-Alembic DB detected, stamping head...")
+            stamp_head(db_url, migrations_dir)
         migrate_upgrade(directory=migrations_dir)
 
 
