@@ -63,8 +63,8 @@ resource "null_resource" "setup_cloudflared" {
       command_args="tunnel run --token ${data.cloudflare_zero_trust_tunnel_cloudflared_token.api.token}"
       command_background=true
       pidfile="/run/cloudflared.pid"
-      output_log="/var/logs/cloudflared.log"
-      error_log="/var/logs/cloudflared.log"
+      output_log="/var/log/cloudflared.log"
+      error_log="/var/log/cloudflared.log"
 
       depend() {
         need net
