@@ -1,0 +1,58 @@
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+
+from sqlalchemy import create_engine, text
+from flask_migrate import upgrade as migrate_upgrade
+from app import create_app
+
+DATABASE_PASSWORD = os.environ.get("DATABASE_ROOT_PASSWORD", "12345678")
+DATABASE_NAME     = os.environ.get("DATABASE_NAME", "wallet_tracker")
+DATABASE_USERNAME = os.environ.get("WALLET_TRACKER_DB_USER", "root")
+DATABASE_HOST     = os.environ.get("WALLET_TRACKER_DB_HOST", "db")
+
+MAIN_MIGRATIONS_DIR   = os.path.join(os.path.dirname(__file__), "migrations_main")
+TENANT_MIGRATIONS_DIR = os.path.join(os.path.dirname(__file__), "migrations_tenant")
+TENANT_PREFIX         = f"{DATABASE_NAME}_u"
+
+
+def get_tenant_databases(engine):
+    with engine.connect() as conn:
+        rows = conn.execute(text("SHOW DATABASES"))
+        return [row[0] for row in rows if row[0].startswith(TENANT_PREFIX)]
+
+
+def main():
+    admin_url = f"mysql://{DATABASE_USERNAME}:{DATABASE_PASSWORD}@{DATABASE_HOST}/{DATABASE_NAME}"
+    admin_engine = create_engine(admin_url)
+
+    # 1. Main DB
+    print("[migrate_all] Migrating main DB...")
+    app = create_app()
+    with app.app_context():
+        migrate_upgrade(directory=MAIN_MIGRATIONS_DIR)
+    print("[migrate_all] Main DB done.")
+
+    # 2. Tenant DBs
+    tenant_dbs = get_tenant_databases(admin_engine)
+    admin_engine.dispose()
+
+    if not tenant_dbs:
+        print("[migrate_all] No tenant databases found.")
+        return
+
+    print(f"[migrate_all] Migrating {len(tenant_dbs)} tenant database(s)...")
+    for db_name in tenant_dbs:
+        url = f"mysql://{DATABASE_USERNAME}:{DATABASE_PASSWORD}@{DATABASE_HOST}/{db_name}"
+        tenant_app = create_app()
+        tenant_app.config["SQLALCHEMY_DATABASE_URI"] = url
+        with tenant_app.app_context():
+            migrate_upgrade(directory=TENANT_MIGRATIONS_DIR)
+        print(f"[migrate_all]   [OK] {db_name}")
+
+    print("[migrate_all] Done.")
+
+
+if __name__ == "__main__":
+    main()

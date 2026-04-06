@@ -37,7 +37,7 @@ HashiCorp Vault: stores all secrets (Jenkins credentials, DB passwords, API toke
 
 ### CI/CD Flow
 
-- **CI** — runs on every pull request to `main`: spins up `db` + `app` containers via Docker Compose and runs `pytest`
+- **CI** — runs on every pull request to `main`: spins up the `app` container via Docker Compose and runs `pytest` against an in-memory SQLite DB (no real DB needed)
 - **CD** — runs on merge to `main`: fetches secrets from Vault and triggers a Jenkins webhook to deploy
 - To skip CD on a specific merge, add the **`skip cd`** label to the PR before merging
 
@@ -83,9 +83,9 @@ Activate — Windows:
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install dependencies:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) then install dependencies:
 ```bash
-pip install -r app/requirements.txt
+uv sync
 ```
 
 ### 3. Environment variables
@@ -146,6 +146,64 @@ Or via Docker Compose (mirrors CI):
 ```bash
 docker compose exec app pytest -v
 ```
+
+---
+
+## Database Migrations
+
+Schema is split across two migration directories:
+
+| Directory | Covers | Managed by |
+|---|---|---|
+| `migrations_main/` | `User`, `RefreshToken` (main DB) | Flask-Migrate |
+| `migrations_tenant/` | `Expense`, `ExpenseCategory`, `Season`, `Importe` (per-user DBs) | Flask-Migrate |
+
+### First-time setup (clean database)
+
+Start the database, set env vars, then apply migrations:
+
+```bash
+COMPOSE_PROFILES=db docker compose up -d
+
+export FLASK_APP=main.py
+export DATABASE_ROOT_PASSWORD=adminadmin
+export DATABASE_NAME=wallet_tracker
+export WALLET_TRACKER_DB_USER=root
+export WALLET_TRACKER_DB_HOST=127.0.0.1
+
+cd app/
+flask db upgrade --directory migrations_main
+```
+
+Tenant migrations run automatically when the first user registers (`initialise_tenant_db` calls `create_all`). After that, `migrate_all.py` keeps them in sync.
+
+### Applying all migrations (after schema changes)
+
+```bash
+cd app/
+export DATABASE_ROOT_PASSWORD=... DATABASE_NAME=... WALLET_TRACKER_DB_USER=... WALLET_TRACKER_DB_HOST=...
+python migrate_all.py
+```
+
+This runs `migrations_main` against the main DB, then `migrations_tenant` against every `wallet_tracker_u*` DB.
+
+### Creating a new migration
+
+After changing a model, generate the migration file for the relevant directory:
+
+```bash
+# Main DB models (User, RefreshToken)
+flask db migrate --directory migrations_main -m "describe your change"
+
+# Tenant models (Expense, ExpenseCategory, Season, Importe)
+flask db migrate --directory migrations_tenant -m "describe your change"
+```
+
+Review the generated file in `versions/` before committing. Then apply with `migrate_all.py`.
+
+### On deploy
+
+`migrate_all.py` runs automatically on every deploy via Terraform (`backend.tf`), before the service restarts.
 
 ---
 
