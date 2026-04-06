@@ -35,7 +35,9 @@ def run_migrations_offline():
 
 
 def run_migrations_online():
-    connectable = current_app.extensions["migrate"].db.engine
+    from sqlalchemy import create_engine
+    url = current_app.config["SQLALCHEMY_DATABASE_URI"]
+    connectable = create_engine(url)
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
@@ -44,6 +46,7 @@ def run_migrations_online():
         )
         with context.begin_transaction():
             context.run_migrations()
+    connectable.dispose()
 
 
 if context.is_offline_mode():
