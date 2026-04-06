@@ -47,12 +47,6 @@ def needs_stamp(engine):
         return len(table_names) > 0 and "alembic_version" not in table_names
 
 
-def stamp_head(db_url, migrations_dir):
-    cfg = AlembicConfig()
-    cfg.set_main_option("script_location", migrations_dir)
-    cfg.set_main_option("sqlalchemy.url", db_url)
-    alembic_command.stamp(cfg, "head")
-
 
 def migrate_app(app, migrations_dir, engine):
     with app.app_context():
