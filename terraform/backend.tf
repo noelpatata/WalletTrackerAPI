@@ -70,9 +70,7 @@ resource "null_resource" "setup_api_in_container" {
       <<-EOF
       set -ex
       pct exec ${proxmox_lxc.api.vmid} -- apk update
-      pct exec ${proxmox_lxc.api.vmid} -- apk add --no-cache git python3 mariadb-dev gcc musl-dev python3-dev build-base linux-headers
-
-      pct exec ${proxmox_lxc.api.vmid} -- sh -c 'wget -qO /tmp/uv.tar.gz https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-musl.tar.gz && tar -xzf /tmp/uv.tar.gz -C /tmp && mv /tmp/uv /usr/local/bin/uv && rm /tmp/uv.tar.gz'
+      pct exec ${proxmox_lxc.api.vmid} -- apk add --no-cache git python3 mariadb-dev gcc musl-dev python3-dev build-base linux-headers uv
 
       pct exec ${proxmox_lxc.api.vmid} -- git clone https://github.com/noelpatata/WalletTrackerAPI.git /srv/WalletTrackerAPI
 
