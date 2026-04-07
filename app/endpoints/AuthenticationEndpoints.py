@@ -1,8 +1,7 @@
-import jwt
 import uuid
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, current_app
-from utils.Cryptography import generate_private_key, generate_private_key_string, generate_public_key_string, decode_jwt_ignore_expiry
+from utils.Cryptography import generate_private_key, generate_private_key_string, generate_public_key_string, decode_jwt_ignore_expiry, generate_access_token
 from utils.Constants import Messages, AuthMessages, UserMessages, TokenMessages
 from utils.Multitenant import create_tenant_user_and_db
 from utils.ResponseMaker import make_response
@@ -29,17 +28,12 @@ def login():
                 return make_response(None, False, UserMessages.USER_NOT_FOUND), 401
             if(UserRepository.check_password(user, auth.get('password'))):
                 jti = str(uuid.uuid4())
-                payload = {
-                    'user': user.id,
-                    'jti': jti,
-                    'exp': datetime.now(timezone.utc) + timedelta(minutes=5)
-                }
-                token = jwt.encode(payload, current_app.config['PRIVATE_KEY'], algorithm='RS256')
+                token = generate_access_token(user.id, jti)
 
                 refresh_token = RefreshToken(
                     jti=jti,
                     user_id=user.id,
-                    expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRY_DAYS)
+                    expires_at=datetime.now(timezone.utc) + timedelta(seconds=20)
                 )
                 db.session.add(refresh_token)
                 db.session.commit()
@@ -169,11 +163,12 @@ def refresh():
             return make_response(None, False, UserMessages.USER_NOT_FOUND), 401
 
         new_jti = str(uuid.uuid4())
+        original_expiry = refresh_token.expires_at
         refresh_token.revoked = True
         new_refresh_token = RefreshToken(
             jti=new_jti,
             user_id=user.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRY_DAYS)
+            expires_at=original_expiry
         )
         db.session.add(new_refresh_token)
 
@@ -184,12 +179,7 @@ def refresh():
 
         db.session.commit()
 
-        new_payload = {
-            'user': user.id,
-            'jti': new_jti,
-            'exp': datetime.now(timezone.utc) + timedelta(minutes=5)
-        }
-        token = jwt.encode(new_payload, current_app.config['PRIVATE_KEY'], algorithm='RS256')
+        token = generate_access_token(user.id, new_jti)
 
         return make_response({'token': token}, True, TokenMessages.REFRESHED), 200
 
