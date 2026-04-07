@@ -2,6 +2,7 @@ import os
 import base64
 import json
 import jwt
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from flask import current_app
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -204,6 +205,14 @@ def decode_jwt(token):
         raise HttpException(TokenMessages.EXPIRED, 401)
     except jwt.InvalidTokenError:
         raise HttpException(TokenMessages.INVALID, 401)
+
+def generate_access_token(user_id: int, jti: str) -> str:
+    payload = {
+        'user': user_id,
+        'jti': jti,
+        'exp': datetime.now(timezone.utc) + timedelta(seconds=10)
+    }
+    return jwt.encode(payload, current_app.config['PRIVATE_KEY'], algorithm='RS256')
 
 def decode_jwt_ignore_expiry(token):
     try:

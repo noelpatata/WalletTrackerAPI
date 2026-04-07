@@ -20,7 +20,7 @@ jobs:
           WALLET_TRACKER_SECRET=secret
           WALLET_TRACKER_DB_USER=root
           WALLET_TRACKER_DB_HOST=db
-          COMPOSE_PROFILES=app
+          COMPOSE_PROFILES=app, db
           EOF
 
       - run: docker compose up -d --build

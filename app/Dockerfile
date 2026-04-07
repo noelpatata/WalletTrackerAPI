@@ -1,7 +1,7 @@
 FROM python:3.12-alpine
 
 RUN apk update && \
-    apk add --no-cache mariadb-dev gcc musl-dev build-base linux-headers
+    apk add --no-cache mariadb-dev gcc musl-dev build-base linux-headers uv
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
@@ -16,4 +16,6 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["uv", "run", "uwsgi", "--ini", "uwsgi.ini"]
+RUN chmod +x entrypoint.sh
+
+CMD ["sh", "entrypoint.sh"]

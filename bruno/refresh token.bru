@@ -1,0 +1,20 @@
+meta {
+  name: refresh token
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}refresh
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
