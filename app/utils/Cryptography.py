@@ -210,7 +210,7 @@ def generate_access_token(user_id: int, jti: str) -> str:
     payload = {
         'user': user_id,
         'jti': jti,
-        'exp': datetime.now(timezone.utc) + timedelta(seconds=10)
+        'exp': datetime.now(timezone.utc) + timedelta(minutes=5)
     }
     return jwt.encode(payload, current_app.config['PRIVATE_KEY'], algorithm='RS256')
 
