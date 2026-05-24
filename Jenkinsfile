@@ -12,6 +12,16 @@ pipeline {
                 git branch: "${params.GIT_BRANCH}", url: 'https://github.com/noelpatata/WalletTrackerAPI.git'
             }
         }
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'SonarScanner'
+                    withSonarQubeEnv() {
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
+                }
+            }
+        }
         stage('Prepare Terraform Files') {
             steps {
                 sh 'cp database/sql_schema/init.sql.template terraform/init.sql.template'
