@@ -3,7 +3,8 @@ pipeline {
     parameters {
         string(name: 'GIT_BRANCH', defaultValue: 'main', description: 'Branch to build')
         string(name: 'IMAGE_VERSION', defaultValue: 'latest', description: 'Docker image version tag')
-        string(name: 'REGISTRY', defaultValue: '100.96.42.211', description: 'Docker registry')
+        string(name: 'VAULT_ADDR', defaultValue: 'https://vault.downops.win', description: 'Vault server address')
+        string(name: 'VAULT_SECRET_PATH', defaultValue: 'secret/wallet-tracker/backend', description: 'Vault secret path for Docker credentials')
     }
     environment {
         VAULT_TOKEN = credentials('vault-token')
@@ -22,11 +23,6 @@ pipeline {
                         sh "${scannerHome}/bin/sonar-scanner"
                     }
                 }
-            }
-        }
-        stage('Prepare Terraform Files') {
-            steps {
-                sh 'cp database/sql_schema/init.sql.template terraform/init.sql.template'
             }
         }
         stage('Terraform Init') {
@@ -56,8 +52,22 @@ pipeline {
         }
         stage('Push Docker Image') {
             steps {
-                sh 'docker tag wallet-tracker ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}'
-                sh 'docker push ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}'
+                script {
+                    sh '''
+                        # Fetch credentials from Vault
+                        VAULT_RESPONSE=$(curl -s -H "X-Vault-Token: ${VAULT_TOKEN}" \
+                          "${VAULT_ADDR}/v1/${VAULT_SECRET_PATH}")
+                        
+                        REGISTRY=$(echo $VAULT_RESPONSE | jq -r '.data.data.REGISTRY_IP')
+                        DOCKER_USERNAME=$(echo $VAULT_RESPONSE | jq -r '.data.data.REGISTRY_USER')
+                        DOCKER_PASSWORD=$(echo $VAULT_RESPONSE | jq -r '.data.data.REGISTRY_PASSWORD')
+                        
+                        echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin ${REGISTRY}
+                        docker tag wallet-tracker ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}
+                        docker push ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}
+                        docker logout ${REGISTRY}
+                    '''
+                }
             }
         }
     }
