@@ -32,8 +32,7 @@ jobs:
             secret/data/wallet-tracker/backend JENKINS_HOSTNAME ;
             secret/data/wallet-tracker/backend JENKINS_CD_SECRET ;
             secret/data/wallet-tracker/backend JENKINS_USERNAME ;
-            secret/data/wallet-tracker/backend REGISTRY_IP ;
-            secret/data/wallet-tracker/backend DOCKER_REGISTRY_CREDENTIALS_ID
+            secret/data/wallet-tracker/backend REGISTRY_IP
 
       - name: Trigger Jenkins Wallet Tracker CD
         if: steps.check-label.outputs.skip != 'true'
