@@ -28,12 +28,12 @@ jobs:
           url: https://vault.downops.win
           token: ${{ secrets.VAULT_TOKEN }}
           secrets: |
-            secret/data/wallettracker/backend JENKINS_API_TOKEN ;
-            secret/data/wallettracker/backend JENKINS_HOSTNAME ;
-            secret/data/wallettracker/backend JENKINS_CD_SECRET ;
-            secret/data/wallettracker/backend JENKINS_USERNAME ;
-            secret/data/wallettracker/backend REGISTRY_IP ;
-            secret/data/wallettracker/backend DOCKER_REGISTRY_CREDENTIALS_ID
+            secret/data/wallet-tracker/backend JENKINS_API_TOKEN ;
+            secret/data/wallet-tracker/backend JENKINS_HOSTNAME ;
+            secret/data/wallet-tracker/backend JENKINS_CD_SECRET ;
+            secret/data/wallet-tracker/backend JENKINS_USERNAME ;
+            secret/data/wallet-tracker/backend REGISTRY_IP ;
+            secret/data/wallet-tracker/backend DOCKER_REGISTRY_CREDENTIALS_ID
 
       - name: Trigger Jenkins Wallet Tracker CD
         if: steps.check-label.outputs.skip != 'true'
