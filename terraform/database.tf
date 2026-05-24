@@ -85,11 +85,6 @@ resource "null_resource" "setup_mariadb_in_container" {
     password = data.vault_kv_secret_v2.backend.data["PROXMOX_PASSWORD"]
   }
 
-  provisioner "file" {
-    source      = "${path.module}/init.sql.template"
-    destination = "/tmp/script.sql"
-  }
-
   provisioner "remote-exec" {
     inline = [
       <<-EOF
@@ -116,12 +111,6 @@ resource "null_resource" "setup_mariadb_in_container" {
         pct exec ${proxmox_lxc.mariadb.vmid} -- sed -i 's/^#bind-address=.*/bind-address = ${var.db_container_ip}/' /etc/my.cnf.d/mariadb-server.cnf
 
         pct exec ${proxmox_lxc.mariadb.vmid} -- rc-service mariadb restart
-
-        echo "[INFO] Importing initialization SQL..."
-
-        pct push ${proxmox_lxc.mariadb.vmid} /tmp/script.sql /tmp/script.sql
-        pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c "MARIADB_DATABASE='${var.wallettracker_mariadb_database}' envsubst < /tmp/script.sql > /tmp/script_parsed.sql"
-        pct exec ${proxmox_lxc.mariadb.vmid} -- sh -c "mariadb < /tmp/script_parsed.sql"
 
         echo "[INFO] Database initialization complete."
       else
