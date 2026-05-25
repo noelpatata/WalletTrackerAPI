@@ -31,23 +31,25 @@ pipeline {
             }
         }
         stage('Trivy Security Scan') {
-            agent {
-                docker {
-                    image 'aquasec/trivy:latest'
-                    args "-v /var/run/docker.sock:/var/run/docker.sock -v ${WORKSPACE}/.trivy-cache:/root/.cache"
-                }
-            }
+            agent any
             steps {
                 sh '''
                     mkdir -p .trivy-cache trivy-reports
 
-                    trivy image \
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v "$PWD":/project \
+                        -v "$PWD"/.trivy-cache:/root/.cache/ \
+                        aquasec/trivy:latest image \
                         --format json \
-                        --output trivy-reports/image-report.json \
+                        --output /project/trivy-reports/image-report.json \
                         --severity HIGH,CRITICAL \
                         wallet-tracker:${IMAGE_VERSION}
 
-                    trivy image \
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v "$PWD"/.trivy-cache:/root/.cache/ \
+                        aquasec/trivy:latest image \
                         --exit-code 1 \
                         --severity HIGH,CRITICAL \
                         wallet-tracker:${IMAGE_VERSION}
