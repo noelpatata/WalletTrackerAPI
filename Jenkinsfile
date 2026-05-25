@@ -3,11 +3,9 @@ pipeline {
     parameters {
         string(name: 'GIT_BRANCH', defaultValue: 'main', description: 'Branch to build')
         string(name: 'IMAGE_VERSION', defaultValue: 'latest', description: 'Docker image version tag')
-        string(name: 'VAULT_ADDR', defaultValue: 'https://vault.downops.win', description: 'Vault server address')
-        string(name: 'VAULT_SECRET_PATH', defaultValue: 'secret/wallet-tracker/backend', description: 'Vault secret path for Docker credentials')
     }
     environment {
-        VAULT_TOKEN = credentials('vault-token')
+        VAULT_ADDR = credentials('vault-addr')
     }
     stages {
         stage('Checkout') {
@@ -30,13 +28,13 @@ pipeline {
                 script {
                     withVault(
                         configuration: [
-                            vaultUrl: "${params.VAULT_ADDR}",
+                            vaultUrl: env.VAULT_ADDR,
                             vaultCredentialId: 'vault-token',
                             engineVersion: 2
                         ],
                         vaultSecrets: [
                             [
-                                path: "${params.VAULT_SECRET_PATH}",
+                                path: "secret/wallet-tracker/backend",
                                 engineVersion: 2,
                                 secretValues: [
                                     [envVar: 'REGISTRY',        vaultKey: 'REGISTRY_IP'],
