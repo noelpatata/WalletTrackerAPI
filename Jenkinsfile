@@ -13,13 +13,6 @@ pipeline {
                 git branch: "${params.GIT_BRANCH}", url: 'https://github.com/noelpatata/WalletTrackerAPI.git'
             }
         }
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    
-                }
-            }
-        }
         stage('Vault dependent Stages') {
             steps {
                 script {
@@ -49,7 +42,7 @@ pipeline {
                         withSonarQubeEnv() {
                             sh "${scannerHome}/bin/sonar-scanner"
                         }
-                        
+
                         sh 'docker build -t ${REGISTRY}/wallet-tracker:${IMAGE_VERSION} ./app'
 
                         sh '''
