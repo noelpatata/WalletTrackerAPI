@@ -50,6 +50,35 @@ pipeline {
                 }
             }
         }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t wallet-tracker:${IMAGE_VERSION} ./app'
+            }
+        }
+        stage('Trivy Security Scan') {
+            steps {
+                sh '''
+                    mkdir -p .trivy-cache
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v "$PWD":/project \
+                        -v "$PWD"/.trivy-cache:/root/.cache/ \
+                        aquasec/trivy:latest image \
+                        --exit-code 1 \
+                        --severity HIGH,CRITICAL \
+                        wallet-tracker:${IMAGE_VERSION}
+
+                    docker run --rm \
+                        -v "$PWD":/project \
+                        -v "$PWD"/.trivy-cache:/root/.cache/ \
+                        aquasec/trivy:latest fs \
+                        --exit-code 1 \
+                        --severity HIGH,CRITICAL \
+                        --security-checks vuln \
+                        .
+                '''
+            }
+        }
         stage('Push Docker Image') {
             steps {
                 script {
