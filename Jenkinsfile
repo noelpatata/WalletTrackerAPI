@@ -28,7 +28,7 @@ pipeline {
         stage('Dependency Check') {
             steps {
                 sh 'mkdir -p dependency-check-report'
-                dependencyCheck additionalArguments: '--scan app --project wallet-tracker-api --format ALL --out dependency-check-report'
+                dependencyCheck additionalArguments: '--scan app --project wallet-tracker-api --format ALL --out dependency-check-report', odcInstallation: 'owasp'
             }
             post {
                 always {
