@@ -18,30 +18,15 @@ pipeline {
         stage('Load Vault Secrets') {
             steps {
                 script {
-                    def vaultResponse = sh(script: """
-                        curl -s -H \"X-Vault-Token: ${VAULT_TOKEN}\" \"${VAULT_ADDR}/v1/${VAULT_SECRET_PATH}\"
-                    """, returnStdout: true).trim()
+                    def vaultResponse = sh(script: '''
+                        curl -s -H "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR/v1/$VAULT_SECRET_PATH"
+                    ''', returnStdout: true).trim()
 
-                    env.REGISTRY = sh(script: """
-                        cat <<'EOF' | jq -r '.data.data.REGISTRY_IP'
-${vaultResponse}
-EOF
-                    """, returnStdout: true).trim()
-                    env.DOCKER_USERNAME = sh(script: """
-                        cat <<'EOF' | jq -r '.data.data.REGISTRY_USER'
-${vaultResponse}
-EOF
-                    """, returnStdout: true).trim()
-                    env.DOCKER_PASSWORD = sh(script: """
-                        cat <<'EOF' | jq -r '.data.data.REGISTRY_PASSWORD'
-${vaultResponse}
-EOF
-                    """, returnStdout: true).trim()
-                    env.NVD_API_KEY = sh(script: """
-                        cat <<'EOF' | jq -r '.data.data.NVD_API_KEY'
-${vaultResponse}
-EOF
-                    """, returnStdout: true).trim()
+                    def secrets = new groovy.json.JsonSlurper().parseText(vaultResponse).data.data
+                    env.REGISTRY = secrets.REGISTRY_IP
+                    env.DOCKER_USERNAME = secrets.REGISTRY_USER
+                    env.DOCKER_PASSWORD = secrets.REGISTRY_PASSWORD
+                    env.NVD_API_KEY = secrets.NVD_API_KEY
                 }
             }
         }
