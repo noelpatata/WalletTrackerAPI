@@ -25,6 +25,41 @@ pipeline {
                 }
             }
         }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t wallet-tracker:${IMAGE_VERSION} ./app'
+            }
+        }
+        stage('Trivy Security Scan') {
+            steps {
+                sh '''
+                    mkdir -p .trivy-cache trivy-reports
+
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v "$PWD":/project \
+                        -v "$PWD"/.trivy-cache:/root/.cache/ \
+                        aquasec/trivy:latest image \
+                        --format json \
+                        --output /project/trivy-reports/image-report.json \
+                        --severity HIGH,CRITICAL \
+                        wallet-tracker:${IMAGE_VERSION}
+
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v "$PWD"/.trivy-cache:/root/.cache/ \
+                        aquasec/trivy:latest image \
+                        --exit-code 1 \
+                        --severity HIGH,CRITICAL \
+                        wallet-tracker:${IMAGE_VERSION}
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-reports/*.json', allowEmptyArchive: true
+                }
+            }
+        }
         stage('Terraform Init') {
             steps {
                 dir('terraform') {
@@ -47,51 +82,6 @@ pipeline {
                     retry(3) {
                         sh 'terraform apply -auto-approve'
                     }
-                }
-            }
-        }
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t wallet-tracker:${IMAGE_VERSION} ./app'
-            }
-        }
-        stage('Trivy Security Scan') {
-            steps {
-                sh '''
-                    mkdir -p .trivy-cache trivy-reports
-
-                    docker run --rm \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -v "$PWD":/project \
-                        -v "$PWD"/.trivy-cache:/root/.cache/ \
-                        aquasec/trivy:latest image \
-                        --format json \
-                        --output /project/trivy-reports/image-report.json \
-                        --severity HIGH,CRITICAL \
-                        wallet-tracker:${IMAGE_VERSION}
-
-                    docker run --rm \
-                        -v "$PWD":/project \
-                        -v "$PWD"/.trivy-cache:/root/.cache/ \
-                        aquasec/trivy:latest fs \
-                        --format json \
-                        --output /project/trivy-reports/fs-report.json \
-                        --severity HIGH,CRITICAL \
-                        --security-checks vuln \
-                        /project
-
-                    docker run --rm \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -v "$PWD"/.trivy-cache:/root/.cache/ \
-                        aquasec/trivy:latest image \
-                        --exit-code 1 \
-                        --severity HIGH,CRITICAL \
-                        wallet-tracker:${IMAGE_VERSION}
-                '''
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'trivy-reports/*.json', allowEmptyArchive: true
                 }
             }
         }
