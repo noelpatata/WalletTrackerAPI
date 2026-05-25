@@ -36,7 +36,7 @@ pipeline {
                         ]
                     ) {
                         sh 'mkdir -p dependency-check-report'
-                        dependencyCheck additionalArguments: "--scan app --project wallet-tracker-api --format ALL --out dependency-check-report --nvdApiKey ${NVD_API_KEY}", odcInstallation: 'owasp dependency check 12.2.2'
+                        dependencyCheck additionalArguments: '--scan app --project wallet-tracker-api --format ALL --out dependency-check-report --nvdApiKey ${NVD_API_KEY}", odcInstallation: ''owasp dependency check 12.2.2'''
 
                         def scannerHome = tool 'SonarScanner'
                         withSonarQubeEnv() {
@@ -46,7 +46,7 @@ pipeline {
                         sh 'docker build -t ${REGISTRY}/wallet-tracker:${IMAGE_VERSION} ./app'
 
                         sh '''
-                            echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin ${REGISTRY}
+                            echo '${DOCKER_PASSWORD}' | docker login -u '${DOCKER_USERNAME}' --password-stdin ${REGISTRY}
                             docker push ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}
                             docker logout ${REGISTRY}
                         '''
