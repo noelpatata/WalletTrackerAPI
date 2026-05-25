@@ -25,37 +25,14 @@ pipeline {
                 }
             }
         }
-        stage('Build Docker Image') {
+        stage('Dependency Check') {
             steps {
-                sh 'docker build -t wallet-tracker:${IMAGE_VERSION} ./app'
-            }
-        }
-        stage('Trivy Security Scan') {
-            agent {
-                docker {
-                    image 'aquasec/trivy:latest'
-                    args "-v /var/run/docker.sock:/var/run/docker.sock -v ${WORKSPACE}/.trivy-cache:/root/.cache"
-                }
-            }
-            steps {
-                sh '''
-                    mkdir -p .trivy-cache trivy-reports
-
-                    trivy image \
-                        --format json \
-                        --output trivy-reports/image-report.json \
-                        --severity HIGH,CRITICAL \
-                        wallet-tracker:${IMAGE_VERSION}
-
-                    trivy image \
-                        --exit-code 1 \
-                        --severity HIGH,CRITICAL \
-                        wallet-tracker:${IMAGE_VERSION}
-                '''
+                sh 'mkdir -p dependency-check-report'
+                dependencyCheck additionalArguments: '--scan app --project wallet-tracker-api --format ALL --out dependency-check-report'
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'trivy-reports/*.json', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'dependency-check-report/**/*', allowEmptyArchive: true
                 }
             }
         }
@@ -82,6 +59,11 @@ pipeline {
                         sh 'terraform apply -auto-approve'
                     }
                 }
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t wallet-tracker:${IMAGE_VERSION} ./app'
             }
         }
         stage('Push Docker Image') {
