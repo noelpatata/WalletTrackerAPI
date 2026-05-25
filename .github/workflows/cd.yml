@@ -31,8 +31,7 @@ jobs:
             secret/data/wallet-tracker/backend JENKINS_API_TOKEN ;
             secret/data/wallet-tracker/backend JENKINS_HOSTNAME ;
             secret/data/wallet-tracker/backend JENKINS_CD_SECRET ;
-            secret/data/wallet-tracker/backend JENKINS_USERNAME ;
-            secret/data/wallet-tracker/backend REGISTRY_IP
+            secret/data/wallet-tracker/backend JENKINS_USERNAME
 
       - name: Trigger Jenkins Wallet Tracker CD
         if: steps.check-label.outputs.skip != 'true'
@@ -42,4 +41,4 @@ jobs:
           curl -u "${{ env.JENKINS_USERNAME }}:${{ env.JENKINS_API_TOKEN }}" \
           "https://${{ env.JENKINS_HOSTNAME }}/generic-webhook-trigger/invoke" \
           -H "Authorization: Bearer ${{ env.JENKINS_CD_SECRET }}" \
-          --data-urlencode "GIT_BRANCH=$GIT_BRANCH&IMAGE_VERSION=latest&REGISTRY_IP=${{ env.REGISTRY_IP }}"
+          --data-urlencode "GIT_BRANCH=$GIT_BRANCH&IMAGE_VERSION=latest"
