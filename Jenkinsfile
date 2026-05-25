@@ -45,11 +45,11 @@ pipeline {
 
                         sh 'docker build -t ${REGISTRY}/wallet-tracker:${IMAGE_VERSION} ./app'
 
-                        sh '''
-                            echo '${DOCKER_PASSWORD}' | docker login -u '${DOCKER_USERNAME}' --password-stdin ${REGISTRY}
+                        sh """
+                            echo "${DOCKER_PASSWORD}" | docker login ${REGISTRY} -u "${DOCKER_USERNAME}" --password-stdin
                             docker push ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}
                             docker logout ${REGISTRY}
-                        '''
+                        """
                     }
                 }
             }
