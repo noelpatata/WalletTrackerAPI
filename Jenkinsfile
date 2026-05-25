@@ -15,25 +15,6 @@ pipeline {
                 git branch: "${params.GIT_BRANCH}", url: 'https://github.com/noelpatata/WalletTrackerAPI.git'
             }
         }
-        stage('Load Vault Secrets') {
-            steps {
-                script {
-                    sh '''
-                        VAULT_RESPONSE=$(curl -s -H "X-Vault-Token: ${VAULT_TOKEN}" "${VAULT_ADDR}/v1/${VAULT_SECRET_PATH}")
-                        echo "REGISTRY=$(echo \"$VAULT_RESPONSE\" | jq -r '.data.data.REGISTRY_IP')" > vault-env.properties
-                        echo "DOCKER_USERNAME=$(echo \"$VAULT_RESPONSE\" | jq -r '.data.data.REGISTRY_USER')" >> vault-env.properties
-                        echo "DOCKER_PASSWORD=$(echo \"$VAULT_RESPONSE\" | jq -r '.data.data.REGISTRY_PASSWORD')" >> vault-env.properties
-                        echo "NVD_API_KEY=$(echo \"$VAULT_RESPONSE\" | jq -r '.data.data.NVD_API_KEY')" >> vault-env.properties
-                    '''
-
-                    def vaultEnv = readFile('vault-env.properties').trim()
-                    vaultEnv.split('\n').each { line ->
-                        def parts = line.split('=', 2)
-                        env[parts[0]] = parts[1]
-                    }
-                }
-            }
-        }
         stage('SonarQube Analysis') {
             steps {
                 script {
@@ -44,10 +25,40 @@ pipeline {
                 }
             }
         }
-        stage('Dependency Check') {
+        stage('Vault dependent Stages') {
             steps {
-                sh 'mkdir -p dependency-check-report'
-                dependencyCheck additionalArguments: "--scan app --project wallet-tracker-api --format ALL --out dependency-check-report --nvdApiKey ${env.NVD_API_KEY}", odcInstallation: 'owasp dependency check 12.2.2'
+                script {
+                    withVault(
+                        configuration: [
+                            vaultUrl: "${params.VAULT_ADDR}",
+                            vaultCredentialId: 'vault-token',
+                            engineVersion: 2
+                        ],
+                        vaultSecrets: [
+                            [
+                                path: "${params.VAULT_SECRET_PATH}",
+                                engineVersion: 2,
+                                secretValues: [
+                                    [envVar: 'REGISTRY',        vaultKey: 'REGISTRY_IP'],
+                                    [envVar: 'DOCKER_USERNAME', vaultKey: 'REGISTRY_USER'],
+                                    [envVar: 'DOCKER_PASSWORD', vaultKey: 'REGISTRY_PASSWORD'],
+                                    [envVar: 'NVD_API_KEY',     vaultKey: 'NVD_API_KEY']
+                                ]
+                            ]
+                        ]
+                    ) {
+                        sh 'mkdir -p dependency-check-report'
+                        dependencyCheck additionalArguments: "--scan app --project wallet-tracker-api --format ALL --out dependency-check-report --nvdApiKey ${NVD_API_KEY}", odcInstallation: 'owasp dependency check 12.2.2'
+
+                        sh 'docker build -t ${REGISTRY}/wallet-tracker:${IMAGE_VERSION} ./app'
+
+                        sh '''
+                            echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin ${REGISTRY}
+                            docker push ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}
+                            docker logout ${REGISTRY}
+                        '''
+                    }
+                }
             }
             post {
                 always {
@@ -77,23 +88,6 @@ pipeline {
                     retry(3) {
                         sh 'terraform apply -auto-approve'
                     }
-                }
-            }
-        }
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t wallet-tracker:${IMAGE_VERSION} ./app'
-            }
-        }
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    sh '''
-                        echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin ${REGISTRY}
-                        docker tag wallet-tracker ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}
-                        docker push ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}
-                        docker logout ${REGISTRY}
-                    '''
                 }
             }
         }
