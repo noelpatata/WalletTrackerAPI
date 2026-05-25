@@ -18,15 +18,19 @@ pipeline {
         stage('Load Vault Secrets') {
             steps {
                 script {
-                    def vaultResponse = sh(script: '''
-                        curl -s -H "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR/v1/$VAULT_SECRET_PATH"
-                    ''', returnStdout: true).trim()
+                    sh '''
+                        VAULT_RESPONSE=$(curl -s -H "X-Vault-Token: ${VAULT_TOKEN}" "${VAULT_ADDR}/v1/${VAULT_SECRET_PATH}")
+                        echo "REGISTRY=$(echo \"$VAULT_RESPONSE\" | jq -r '.data.data.REGISTRY_IP')" > vault-env.properties
+                        echo "DOCKER_USERNAME=$(echo \"$VAULT_RESPONSE\" | jq -r '.data.data.REGISTRY_USER')" >> vault-env.properties
+                        echo "DOCKER_PASSWORD=$(echo \"$VAULT_RESPONSE\" | jq -r '.data.data.REGISTRY_PASSWORD')" >> vault-env.properties
+                        echo "NVD_API_KEY=$(echo \"$VAULT_RESPONSE\" | jq -r '.data.data.NVD_API_KEY')" >> vault-env.properties
+                    '''
 
-                    def secrets = new groovy.json.JsonSlurper().parseText(vaultResponse).data.data
-                    env.REGISTRY = secrets.REGISTRY_IP
-                    env.DOCKER_USERNAME = secrets.REGISTRY_USER
-                    env.DOCKER_PASSWORD = secrets.REGISTRY_PASSWORD
-                    env.NVD_API_KEY = secrets.NVD_API_KEY
+                    def vaultEnv = readFile('vault-env.properties').trim()
+                    vaultEnv.split('\n').each { line ->
+                        def parts = line.split('=', 2)
+                        env[parts[0]] = parts[1]
+                    }
                 }
             }
         }
