@@ -1,4 +1,4 @@
-# WalletTrackerAPI
+# WalletTracker
 
 A REST API for tracking personal finances, built with Flask and deployed on a self-hosted infrastructure stack.
 
@@ -11,7 +11,7 @@ The API handles authentication (JWT with RSA keys), expense categories, and expe
 ```
 GitHub ──► GitHub Actions ──► Jenkins ──► Proxmox (Docker containers)
                                                │
-                              Cloudflare Tunnel ◄─── Flask API (port 5000)
+                              Cloudflare Tunnel ◄─── Flask API (port 5000) ──► SonarQube Scanner
                                                          │
                                                     MariaDB (port 3306)
 
@@ -30,6 +30,7 @@ HashiCorp Vault: stores all secrets (Jenkins credentials, DB passwords, API toke
 | **HashiCorp Vault** | Centralized secrets management — no secrets in CI/CD or environment files |
 | **GitHub Actions** | CI on pull requests, CD trigger on merge to `main` |
 | **Jenkins** | Executes the actual deployment pipeline on the self-hosted server |
+| **SonarQube** | Analyses the codebase and checks for vulnerabilities and code quality |
 | **Proxmox** | Hypervisor hosting the LXC containers for the API and database |
 | **Cloudflare** | Tunnel and DNS routing — exposes the API publicly without open ports |
 | **Bruno** | API collection for manual endpoint testing during development |
@@ -39,6 +40,7 @@ HashiCorp Vault: stores all secrets (Jenkins credentials, DB passwords, API toke
 
 - **CI** — runs on every pull request to `main`: spins up the `app` container via Docker Compose and runs `pytest` against an in-memory SQLite DB (no real DB needed)
 - **CD** — runs on merge to `main`: fetches secrets from Vault and triggers a Jenkins webhook to deploy
+- **Post CD** - Jenkins calls SonarQube to run the scanner.
 - To skip CD on a specific merge, add the **`skip cd`** label to the PR before merging
 
 ---
