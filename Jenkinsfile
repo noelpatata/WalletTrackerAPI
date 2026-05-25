@@ -25,39 +25,14 @@ pipeline {
                 }
             }
         }
-        stage('Build Docker Image') {
+        stage('Dependency Check') {
             steps {
-                sh 'docker build -t wallet-tracker:${IMAGE_VERSION} ./app'
-            }
-        }
-        stage('Trivy Security Scan') {
-            agent any
-            steps {
-                sh '''
-                    mkdir -p .trivy-cache trivy-reports
-
-                    docker run --rm \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -v "$PWD":/project \
-                        -v "$PWD"/.trivy-cache:/root/.cache/ \
-                        aquasec/trivy:latest image \
-                        --format json \
-                        --output /project/trivy-reports/image-report.json \
-                        --severity HIGH,CRITICAL \
-                        wallet-tracker:${IMAGE_VERSION}
-
-                    docker run --rm \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -v "$PWD"/.trivy-cache:/root/.cache/ \
-                        aquasec/trivy:latest image \
-                        --exit-code 1 \
-                        --severity HIGH,CRITICAL \
-                        wallet-tracker:${IMAGE_VERSION}
-                '''
+                sh 'mkdir -p dependency-check-report'
+                dependencyCheck additionalArguments: '--scan app --project wallet-tracker-api --format ALL --out dependency-check-report'
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'trivy-reports/*.json', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'dependency-check-report/**/*', allowEmptyArchive: true
                 }
             }
         }
@@ -84,6 +59,11 @@ pipeline {
                         sh 'terraform apply -auto-approve'
                     }
                 }
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t wallet-tracker:${IMAGE_VERSION} ./app'
             }
         }
         stage('Push Docker Image') {
