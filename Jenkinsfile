@@ -58,13 +58,15 @@ pipeline {
         stage('Trivy Security Scan') {
             steps {
                 sh '''
-                    mkdir -p .trivy-cache
+                    mkdir -p .trivy-cache trivy-reports
+
                     docker run --rm \
                         -v /var/run/docker.sock:/var/run/docker.sock \
                         -v "$PWD":/project \
                         -v "$PWD"/.trivy-cache:/root/.cache/ \
                         aquasec/trivy:latest image \
-                        --exit-code 1 \
+                        --format json \
+                        --output /project/trivy-reports/image-report.json \
                         --severity HIGH,CRITICAL \
                         wallet-tracker:${IMAGE_VERSION}
 
@@ -72,11 +74,25 @@ pipeline {
                         -v "$PWD":/project \
                         -v "$PWD"/.trivy-cache:/root/.cache/ \
                         aquasec/trivy:latest fs \
-                        --exit-code 1 \
+                        --format json \
+                        --output /project/trivy-reports/fs-report.json \
                         --severity HIGH,CRITICAL \
                         --security-checks vuln \
-                        .
+                        /project
+
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v "$PWD"/.trivy-cache:/root/.cache/ \
+                        aquasec/trivy:latest image \
+                        --exit-code 1 \
+                        --severity HIGH,CRITICAL \
+                        wallet-tracker:${IMAGE_VERSION}
                 '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-reports/*.json', allowEmptyArchive: true
+                }
             }
         }
         stage('Push Docker Image') {
