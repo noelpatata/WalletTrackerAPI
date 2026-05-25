@@ -15,6 +15,36 @@ pipeline {
                 git branch: "${params.GIT_BRANCH}", url: 'https://github.com/noelpatata/WalletTrackerAPI.git'
             }
         }
+        stage('Load Vault Secrets') {
+            steps {
+                script {
+                    def vaultResponse = sh(script: """
+                        curl -s -H \"X-Vault-Token: ${VAULT_TOKEN}\" \"${VAULT_ADDR}/v1/${VAULT_SECRET_PATH}\"
+                    """, returnStdout: true).trim()
+
+                    env.REGISTRY = sh(script: """
+                        cat <<'EOF' | jq -r '.data.data.REGISTRY_IP'
+${vaultResponse}
+EOF
+                    """, returnStdout: true).trim()
+                    env.DOCKER_USERNAME = sh(script: """
+                        cat <<'EOF' | jq -r '.data.data.REGISTRY_USER'
+${vaultResponse}
+EOF
+                    """, returnStdout: true).trim()
+                    env.DOCKER_PASSWORD = sh(script: """
+                        cat <<'EOF' | jq -r '.data.data.REGISTRY_PASSWORD'
+${vaultResponse}
+EOF
+                    """, returnStdout: true).trim()
+                    env.NVD_API_KEY = sh(script: """
+                        cat <<'EOF' | jq -r '.data.data.NVD_API_KEY'
+${vaultResponse}
+EOF
+                    """, returnStdout: true).trim()
+                }
+            }
+        }
         stage('SonarQube Analysis') {
             steps {
                 script {
@@ -28,7 +58,7 @@ pipeline {
         stage('Dependency Check') {
             steps {
                 sh 'mkdir -p dependency-check-report'
-                dependencyCheck additionalArguments: '--scan app --project wallet-tracker-api --format ALL --out dependency-check-report', odcInstallation: 'owasp dependency check 12.2.2'
+                dependencyCheck additionalArguments: "--scan app --project wallet-tracker-api --format ALL --out dependency-check-report --nvdApiKey ${env.NVD_API_KEY}", odcInstallation: 'owasp dependency check 12.2.2'
             }
             post {
                 always {
@@ -70,14 +100,6 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        # Fetch credentials from Vault
-                        VAULT_RESPONSE=$(curl -s -H "X-Vault-Token: ${VAULT_TOKEN}" \
-                          "${VAULT_ADDR}/v1/${VAULT_SECRET_PATH}")
-                        
-                        REGISTRY=$(echo $VAULT_RESPONSE | jq -r '.data.data.REGISTRY_IP')
-                        DOCKER_USERNAME=$(echo $VAULT_RESPONSE | jq -r '.data.data.REGISTRY_USER')
-                        DOCKER_PASSWORD=$(echo $VAULT_RESPONSE | jq -r '.data.data.REGISTRY_PASSWORD')
-                        
                         echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin ${REGISTRY}
                         docker tag wallet-tracker ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}
                         docker push ${REGISTRY}/wallet-tracker:${IMAGE_VERSION}
