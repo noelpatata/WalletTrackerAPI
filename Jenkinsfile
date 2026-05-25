@@ -36,7 +36,7 @@ pipeline {
                         ]
                     ) {
                         sh 'mkdir -p dependency-check-report'
-                        dependencyCheck additionalArguments: '--scan app --project wallet-tracker-api --format ALL --out dependency-check-report --nvdApiKey ${NVD_API_KEY}", odcInstallation: ''owasp dependency check 12.2.2'''
+                        dependencyCheck additionalArguments: '--scan app --project wallet-tracker-api --format ALL --out dependency-check-report --nvdApiKey ${NVD_API_KEY}', odcInstallation: 'owasp dependency check 12.2.2'
 
                         def scannerHome = tool 'SonarScanner'
                         withSonarQubeEnv() {
